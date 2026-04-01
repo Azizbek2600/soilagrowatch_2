@@ -316,16 +316,22 @@
   /* --- Qatlam tugmalari: mobil --- */
   .layer-controls {
     top: max(15px, env(safe-area-inset-top, 15px));
-    max-width: 95%;
-    gap: 4px;
-    padding: 6px;
-    justify-content: flex-start;
-    -webkit-overflow-scrolling: touch;
+    /* Ekran chetidan chiqmasin */
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+    gap: 0;
+    padding: 5px;
   }
 
+  /* Mobilda flex:1 bekor, barcha tugma teng bo'linadi */
   .layer-btn {
-    padding: 7px 13px;
-    font-size: 12.5px;
+    flex: 1;
+    min-width: 0;
+    padding: 8px 4px;
+    font-size: 12px;
+    letter-spacing: 0;
   }
 
   /* Mobil: qisqa nom ko'rinadi, to'liq yashirin */
@@ -401,38 +407,30 @@
    400px — keng mobil (Galaxy S24, Pixel 8...)
    ===================================================== */
 @media (max-width: 400px) {
-  .layer-btn {
-    padding: 6px 12px;
-    font-size: 12.5px;
-  }
+  .layer-controls { width: calc(100vw - 20px); max-width: calc(100vw - 20px); }
+  .layer-btn { padding: 7px 2px; font-size: 12px; }
 }
 
 /* =====================================================
    390px — iPhone 14 / 15 Pro, iPhone 16
    ===================================================== */
 @media (max-width: 390px) {
-  .layer-btn {
-    padding: 6px 11px;
-    font-size: 12px;
-  }
+  .layer-controls { width: calc(100vw - 18px); max-width: calc(100vw - 18px); }
+  .layer-btn { padding: 7px 2px; font-size: 11.5px; }
 }
 
 /* =====================================================
    375px — iPhone SE 3, iPhone 12 mini, iPhone 13 mini
    ===================================================== */
 @media (max-width: 375px) {
-  .layer-btn {
-    padding: 6px 10px;
-    font-size: 12px;
-  }
+  .layer-controls { width: calc(100vw - 16px); max-width: calc(100vw - 16px); }
+  .layer-btn { padding: 7px 1px; font-size: 11.5px; }
 }
 
 /* =====================================================
    360px — Android kichik ekranlar (Galaxy A, Redmi...)
    ===================================================== */
 @media (max-width: 360px) {
-  .layer-btn {
-    padding: 5px 9px;
-    font-size: 11.5px;
-  }
+  .layer-controls { width: calc(100vw - 14px); max-width: calc(100vw - 14px); }
+  .layer-btn { padding: 6px 1px; font-size: 11px; }
 }
