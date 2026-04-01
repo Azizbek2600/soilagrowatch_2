@@ -68,6 +68,21 @@ function buildPalette(colorScale, codes) {
 // ─────────────────────────────────────────────
 const LAYERS = [
   {
+    id:         'umumiy',
+    label:      'Umumiy (Degradatsiya)',
+    shortLabel: 'Umumiy',
+    data:  umumiyData,
+    // Yashildan → Qizilga (Umumiy degradatsiya)
+    colorScale: { from: '#2d9e3e', to: '#d7191c' },
+    legend: [
+      { code: 1, label: "Degradatsiya yo'q" },
+      { code: 2, label: 'Past degradatsiya' },
+      { code: 3, label: "O'rtacha degradatsiya" },
+      { code: 4, label: 'Yuqori degradatsiya' },
+      { code: 5, label: 'Juda yuqori degradatsiya' },
+    ],
+  },
+  {
     id:         'ndvi',
     label:      'NDVI (Vegetatsiya)',
     shortLabel: 'NDVI',
@@ -125,21 +140,6 @@ const LAYERS = [
       { code: 3, label: 'Aralash zona' },
       { code: 4, label: 'Yalangoch tuproq' },
       { code: 5, label: 'Kuchli degradatsiya' },
-    ],
-  },
-  {
-    id:         'umumiy',
-    label:      'Umumiy (Degradatsiya)',
-    shortLabel: 'Umumiy',
-    data:  umumiyData,
-    // Yashildan → Qizilga (Umumiy degradatsiya)
-    colorScale: { from: '#2d9e3e', to: '#d7191c' },
-    legend: [
-      { code: 1, label: "Degradatsiya yo'q" },
-      { code: 2, label: 'Past degradatsiya' },
-      { code: 3, label: "O'rtacha degradatsiya" },
-      { code: 4, label: 'Yuqori degradatsiya' },
-      { code: 5, label: 'Juda yuqori degradatsiya' },
     ],
   },
 ]
