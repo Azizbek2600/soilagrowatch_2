@@ -89,6 +89,14 @@
   border-bottom: 1px solid #ebebeb;
 }
 
+/* Gradient rang paneli — legendadan yuqorida */
+.legend-gradient-bar {
+  height: 8px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
 .legend-row {
   display: flex;
   align-items: center;

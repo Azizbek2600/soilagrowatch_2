@@ -4,61 +4,117 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import './App.css'
 
-import siData   from './data/si.json'
-import bsiData  from './data/bsi.json'
-import ndviData from './data/ndvi.json'
+import ndviData   from './data/ndvi.json'
+import ndwiData   from './data/ndwi.json'
+import siData     from './data/si.json'
+import bsiData    from './data/bsi.json'
+import umumiyData from './data/umumiy.json'
 
 // ─────────────────────────────────────────────
 // Sozlamalar
 // ─────────────────────────────────────────────
-const PROPERTY_KEY   = 'gridcode'         // barcha fayllar uchun umumiy kalit
+const PROPERTY_KEY   = 'gridcode'
 const DEFAULT_CENTER = [42.85, 60.08]
 const DEFAULT_ZOOM   = 10
 
 // ─────────────────────────────────────────────
-// LAYERS — har bir qatlam o'z rang palitrasiga ega
-//
-// palette: { [gridcode]: 'hex rang' }
-//   SI/BSI da gridcode 1 = eng yaxshi, 5 = eng yomon
-//   NDVI da:
-//     1 = Suv (ko'k)
-//     2 = Taqir yer (jigarrang)
-//     3 = Vegetatsiya yo'q (sariq-jigarrang)
-//     4 = Past vegetatsiya (sariq-yashil)
-//     5 = O'rta vegetatsiya (yashil)
-//     6 = Yuqori vegetatsiya (to'q yashil)
+// DINAMIK RANG HISOBLASH
+// Har bir qatlam uchun minimal va maksimal gridcode
+// asosida gradiyent ranglar avtomatik hisoblanadi
+// ─────────────────────────────────────────────
+function hexToRgb(hex) {
+  const h = hex.replace('#', '')
+  return [
+    parseInt(h.slice(0, 2), 16),
+    parseInt(h.slice(2, 4), 16),
+    parseInt(h.slice(4, 6), 16),
+  ]
+}
+
+function rgbToHex([r, g, b]) {
+  return '#' + [r, g, b]
+    .map(v => Math.round(v).toString(16).padStart(2, '0'))
+    .join('')
+}
+
+function interpolateColor(from, to, t) {
+  const [r1, g1, b1] = hexToRgb(from)
+  const [r2, g2, b2] = hexToRgb(to)
+  return rgbToHex([
+    r1 + (r2 - r1) * t,
+    g1 + (g2 - g1) * t,
+    b1 + (b2 - b1) * t,
+  ])
+}
+
+// codes ro'yxati asosida to'liq palitrani avtomatik hisoblaydi
+function buildPalette(colorScale, codes) {
+  const min   = Math.min(...codes)
+  const max   = Math.max(...codes)
+  const range = max - min || 1
+  const palette = {}
+  codes.forEach(code => {
+    const t = (code - min) / range
+    palette[code] = interpolateColor(colorScale.from, colorScale.to, t)
+  })
+  return palette
+}
+
+// ─────────────────────────────────────────────
+// QATLAMLAR — har bir qatlam o'z rang palitrasiga ega
+// colorScale.from → boshlang'ich rang (minimal gridcode)
+// colorScale.to   → oxirgi rang (maksimal gridcode)
+// Palitra avtomatik hisoblanadi (buildPalette)
 // ─────────────────────────────────────────────
 const LAYERS = [
+  {
+    id:    'ndvi',
+    label: 'NDVI (Vegetatsiya)',
+    data:  ndviData,
+    // Och yashildan → To'q yashilga (O'simlik qalinligi)
+    colorScale: { from: '#d4edaa', to: '#1a6b2e' },
+    legend: [
+      { code: 1, label: 'Suv' },
+      { code: 2, label: 'Yalangoch yer' },
+      { code: 3, label: "Siyrak o'simlik" },
+      { code: 4, label: "O'rtacha o'simlik" },
+      { code: 5, label: "Zich o'simlik" },
+    ],
+  },
+  {
+    id:    'ndwi',
+    label: 'NDWI (Namlik/Suv)',
+    data:  ndwiData,
+    // Och ko'kdan → To'q ko'kga (Namlik/Suv)
+    colorScale: { from: '#cce9ff', to: '#084594' },
+    legend: [
+      { code: 1, label: 'Juda quruq' },
+      { code: 2, label: 'Quruq' },
+      { code: 3, label: 'Aralash zona' },
+      { code: 4, label: 'Nam hudud' },
+      { code: 5, label: 'Suv' },
+    ],
+  },
   {
     id:    'si',
     label: "SI (Sho'rlanish)",
     data:  siData,
-    palette: {
-      1: '#1a9641',   // sho'rlanmagan     — yashil
-      2: '#a6d96a',   // past              — och yashil
-      3: '#ffffbf',   // o'rtacha          — sariq
-      4: '#fdae61',   // sho'rlangan       — to'q sariq
-      5: '#d7191c',   // yuqori sho'rlangan — to'q qizil
-    },
+    // Yashildan (toza) → To'q qizilga (kuchli sho'rlangan)
+    colorScale: { from: '#2d9e3e', to: '#8b0000' },
     legend: [
-      { code: 1, label: "Sho'rlanmagan" },
-      { code: 2, label: "Past sho'rlangan" },
-      { code: 3, label: "O'rtacha sho'rlangan" },
-      { code: 4, label: "Sho'rlangan" },
-      { code: 5, label: "Yuqori sho'rlangan" },
+      { code: 1, label: 'Suv' },
+      { code: 2, label: "Zich o'simlik" },
+      { code: 3, label: "O'rtacha" },
+      { code: 4, label: 'Yomon' },
+      { code: 5, label: 'Juda yomon' },
     ],
   },
   {
     id:    'bsi',
     label: 'BSI (Ochiq tuproq)',
     data:  bsiData,
-    palette: {
-      1: '#2166ac',   // suv / zich o'simlik — ko'k
-      2: '#74c476',   // o'simlik            — yashil
-      3: '#ffffbf',   // aralash zona        — sariq
-      4: '#d9a441',   // yalangoch tuproq    — jigarrang-sariq
-      5: '#8c2d04',   // kuchli degradatsiya — to'q jigarrang
-    },
+    // Och jigarrangdan → To'q jigarrangga (Ochiq tuproq)
+    colorScale: { from: '#f5e4c3', to: '#4a2800' },
     legend: [
       { code: 1, label: "Suv va zich o'simlik" },
       { code: 2, label: "O'simlik" },
@@ -68,29 +124,26 @@ const LAYERS = [
     ],
   },
   {
-    id:    'ndvi',
-    label: 'NDVI (Vegetatsiya)',
-    data:  ndviData,
-    // NDVI standart rang shkalalasi:
-    // past indeks = quruq / jigarrang, yuqori indeks = to'q yashil
-    palette: {
-      1: '#4575b4',   // Suv                — ko'k
-      2: '#8c510a',   // Taqir yerlar       — to'q jigarrang
-      3: '#d8b365',   // Vegetatsiya yo'q   — och jigarrang-sariq
-      4: '#c9e09b',   // Past vegetatsiya   — sariq-yashil
-      5: '#41ab5d',   // O'rta vegetatsiya  — yashil
-      6: '#006837',   // Yuqori vegetatsiya — to'q yashil
-    },
+    id:    'umumiy',
+    label: 'Umumiy (Degradatsiya)',
+    data:  umumiyData,
+    // Yashildan → Qizilga (Umumiy degradatsiya)
+    colorScale: { from: '#2d9e3e', to: '#d7191c' },
     legend: [
-      { code: 1, label: 'Suv' },
-      { code: 2, label: 'Taqir yerlar' },
-      { code: 3, label: "Vegetatsiya yo'q" },
-      { code: 4, label: 'Past vegetatsiya' },
-      { code: 5, label: "O'rta vegetatsiya" },
-      { code: 6, label: 'Yuqori vegetatsiya' },
+      { code: 1, label: "Degradatsiya yo'q" },
+      { code: 2, label: 'Past degradatsiya' },
+      { code: 3, label: "O'rtacha degradatsiya" },
+      { code: 4, label: 'Yuqori degradatsiya' },
+      { code: 5, label: 'Juda yuqori degradatsiya' },
     ],
   },
 ]
+
+// Har bir qatlam uchun palitrani bir marta hisoblab, saqlash
+LAYERS.forEach(layer => {
+  const codes = layer.legend.map(item => item.code)
+  layer.palette = buildPalette(layer.colorScale, codes)
+})
 
 // ─────────────────────────────────────────────
 // CHOROPLETH STYLE — faol qatlam palitrasidan rang oladi
@@ -100,7 +153,7 @@ function makeStyle(palette) {
     const code = feature.properties[PROPERTY_KEY]
     return {
       fillColor:   palette[code] ?? '#999999',
-      fillOpacity: 0.7,
+      fillOpacity: 0.75,
       stroke:      false,
     }
   }
@@ -123,15 +176,13 @@ function MapFitBounds({ data }) {
 
 // ─────────────────────────────────────────────
 // POPUP
-// SI/BSI: maydoni/Maydoni (ga)
-// NDVI:   area (ga)
 // ─────────────────────────────────────────────
 function onEachFeature(feature, leafletLayer) {
-  const p         = feature.properties
-  const gridcode  = p.gridcode ?? '—'
-  const klass     = p.klass ?? p.Klass ?? '—'
-  const rawArea   = p.maydoni ?? p.Maydoni ?? p.area
-  const areaText  = rawArea != null ? `${Number(rawArea).toFixed(2)} ga` : '—'
+  const p        = feature.properties
+  const gridcode = p.gridcode ?? '—'
+  const klass    = p.Klass ?? p.klass ?? '—'
+  const rawArea  = p.Maydoni ?? p.maydoni ?? p.area
+  const areaText = rawArea != null ? `${Number(rawArea).toFixed(2)} ga` : '—'
 
   leafletLayer.bindPopup(`
     <div class="popup-card">
@@ -198,15 +249,26 @@ function MapControls() {
 
 // ─────────────────────────────────────────────
 // LEGENDA — chap pastki burchak
+// Faol qatlam almashganda rang va yozuvlar o'zgaradi
 // ─────────────────────────────────────────────
 function Legend({ layer }) {
   return (
     <div className="legend">
       <div className="legend-title">Analiz natijalari</div>
       <div className="legend-subtitle">{layer.label}</div>
+
+      {/* Gradient color bar */}
+      <div className="legend-gradient-bar" style={{
+        background: `linear-gradient(to right, ${layer.colorScale.from}, ${layer.colorScale.to})`,
+      }} />
+
+      {/* Legend rows with dynamic colors */}
       {layer.legend.map(({ code, label }) => (
         <div key={code} className="legend-row">
-          <span className="legend-swatch" style={{ background: layer.palette[code] }} />
+          <span
+            className="legend-swatch"
+            style={{ background: layer.palette[code] }}
+          />
           <span className="legend-label">{label}</span>
         </div>
       ))}
