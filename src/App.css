@@ -1,0 +1,215 @@
+/* ===== Layout ===== */
+.app-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ===== Yuqori — qatlam tugmalari ===== */
+.layer-controls {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  gap: 8px;
+  background: rgba(10, 14, 26, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 40px;
+  padding: 7px 12px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+}
+
+.layer-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 18px;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: rgba(255, 255, 255, 0.7);
+  background: transparent;
+  transition: background 0.2s, color 0.2s, transform 0.15s;
+  white-space: nowrap;
+}
+
+.layer-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.layer-btn.active {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+.layer-btn:active {
+  transform: scale(0.96);
+}
+
+/* ===== Chap pastki — Legenda ===== */
+.legend {
+  position: absolute;
+  bottom: 32px;
+  left: 16px;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 12px;
+  padding: 14px 16px;
+  min-width: 196px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.22), 0 1px 4px rgba(0,0,0,0.1);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  font-family: system-ui, sans-serif;
+}
+
+.legend-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  margin-bottom: 2px;
+}
+
+.legend-subtitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ebebeb;
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 6px;
+}
+
+.legend-row:last-child {
+  margin-bottom: 0;
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+}
+
+.legend-label {
+  font-size: 12px;
+  color: #3a3a4a;
+  line-height: 1.3;
+}
+
+/* ===== O'ng pastki — Map Controls (Zoom + Lokatsiya) ===== */
+.map-controls {
+  position: absolute;
+  bottom: 32px;
+  right: 16px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.map-ctrl-btn {
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.96);
+  color: #1a1a2e;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2), 0 1px 3px rgba(0,0,0,0.1);
+  transition: background 0.15s, transform 0.12s, box-shadow 0.15s;
+}
+
+.map-ctrl-btn:hover {
+  background: #fff;
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.26);
+}
+
+.map-ctrl-btn:active {
+  transform: scale(0.93);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+/* Lokatsiya tugmasi — biroz ajralib tursin */
+.map-ctrl-btn.locate {
+  color: #2563eb;
+}
+
+.map-ctrl-btn.locate:hover {
+  background: #eff6ff;
+}
+
+/* Zoom va Locate orasidagi ajratuvchi */
+.map-ctrl-divider {
+  width: 22px;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.12);
+  margin: 1px 0;
+}
+
+/* ===== Popup ===== */
+.popup-card {
+  font-family: system-ui, sans-serif;
+  min-width: 180px;
+}
+
+.popup-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.popup-row:last-child {
+  border-bottom: none;
+}
+
+.popup-label {
+  font-size: 11px;
+  color: #888;
+  white-space: nowrap;
+}
+
+.popup-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: #222;
+  text-align: right;
+}
+
+.custom-popup .leaflet-popup-content-wrapper {
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  padding: 4px;
+}
+
+.custom-popup .leaflet-popup-content {
+  margin: 10px 14px;
+}
