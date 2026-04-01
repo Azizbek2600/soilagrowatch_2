@@ -249,29 +249,56 @@ function MapControls() {
 
 // ─────────────────────────────────────────────
 // LEGENDA — chap pastki burchak
-// Faol qatlam almashganda rang va yozuvlar o'zgaradi
+// Mobilda yig'ilib-yoziladigan (collapsible), desktopda doim ochiq
 // ─────────────────────────────────────────────
 function Legend({ layer }) {
+  const [collapsed, setCollapsed] = useState(false)
+
   return (
-    <div className="legend">
-      <div className="legend-title">Analiz natijalari</div>
-      <div className="legend-subtitle">{layer.label}</div>
-
-      {/* Gradient color bar */}
-      <div className="legend-gradient-bar" style={{
-        background: `linear-gradient(to right, ${layer.colorScale.from}, ${layer.colorScale.to})`,
-      }} />
-
-      {/* Legend rows with dynamic colors */}
-      {layer.legend.map(({ code, label }) => (
-        <div key={code} className="legend-row">
-          <span
-            className="legend-swatch"
-            style={{ background: layer.palette[code] }}
-          />
-          <span className="legend-label">{label}</span>
+    <div className={`legend${collapsed ? ' legend--collapsed' : ''}`}>
+      {/* Header — toggle tugmasi bilan */}
+      <div className="legend-header" onClick={() => setCollapsed(c => !c)}>
+        <div className="legend-header-text">
+          <div className="legend-title">Analiz natijalari</div>
+          <div className="legend-subtitle">{layer.label}</div>
         </div>
-      ))}
+        <button
+          className="legend-toggle-btn"
+          aria-label={collapsed ? "Yoy" : "Yig'"}
+          title={collapsed ? "Legendani yoy" : "Legendani yig'"}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14" height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ transform: collapsed ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+          >
+            <polyline points="18 15 12 9 6 15" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Kontent — collapsed holatda yashiriladi */}
+      <div className="legend-body">
+        <div className="legend-gradient-bar" style={{
+          background: `linear-gradient(to right, ${layer.colorScale.from}, ${layer.colorScale.to})`,
+        }} />
+
+        {layer.legend.map(({ code, label }) => (
+          <div key={code} className="legend-row">
+            <span
+              className="legend-swatch"
+              style={{ background: layer.palette[code] }}
+            />
+            <span className="legend-label">{label}</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

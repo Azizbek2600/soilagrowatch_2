@@ -22,6 +22,9 @@
   border-radius: 40px;
   padding: 7px 12px;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+  /* Overflow oldini olish uchun max-width cheklash */
+  max-width: calc(100vw - 32px);
+  white-space: nowrap;
 }
 
 .layer-btn {
@@ -71,6 +74,57 @@
   font-family: system-ui, sans-serif;
 }
 
+/* Legend header — sarlavha + toggle tugmasi */
+.legend-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: default; /* desktopda click sezilmasin */
+}
+
+.legend-header-text {
+  flex: 1;
+}
+
+/* Toggle tugmasi — desktopda ko'rinmaydi */
+.legend-toggle-btn {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 6px;
+  color: #555;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.legend-toggle-btn:hover {
+  background: rgba(0,0,0,0.07);
+}
+
+/* Body — kontent qismi */
+.legend-body {
+  overflow: hidden;
+  transition: max-height 0.25s ease, opacity 0.2s ease;
+  max-height: 500px;
+  opacity: 1;
+}
+
+/* Collapsed holat */
+.legend--collapsed .legend-body {
+  max-height: 0;
+  opacity: 0;
+}
+
+.legend--collapsed .legend-subtitle {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
 .legend-title {
   font-size: 11px;
   font-weight: 700;
@@ -87,9 +141,10 @@
   margin-bottom: 10px;
   padding-bottom: 8px;
   border-bottom: 1px solid #ebebeb;
+  transition: margin 0.2s, padding 0.2s;
 }
 
-/* Gradient rang paneli — legendadan yuqorida */
+/* Gradient rang paneli */
 .legend-gradient-bar {
   height: 8px;
   border-radius: 4px;
@@ -220,4 +275,107 @@
 
 .custom-popup .leaflet-popup-content {
   margin: 10px 14px;
+}
+
+/* =====================================================
+   RESPONSIVE — Mobil qurilmalar uchun (@max-width: 768px)
+   ===================================================== */
+@media (max-width: 768px) {
+
+  /* --- Qatlam tugmalari: gorizontal scroll paneli --- */
+  .layer-controls {
+    top: 12px;
+    left: 0;
+    right: 0;
+    transform: none;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    border-radius: 0 0 20px 20px;
+    padding: 6px 10px;
+    gap: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;          /* Firefox */
+    max-width: 100vw;
+    /* Chapdan o'ngga boshlash */
+    justify-content: flex-start;
+  }
+
+  /* Scrollbarni yashirish (Chrome/Safari) */
+  .layer-controls::-webkit-scrollbar {
+    display: none;
+  }
+
+  .layer-btn {
+    padding: 6px 14px;
+    font-size: 12px;
+    flex-shrink: 0;  /* tugmalar kichraymaydi, scroll bo'ladi */
+  }
+
+  /* --- Legenda: ixcham, collapsible --- */
+  .legend {
+    bottom: 16px;
+    left: 12px;
+    padding: 10px 12px;
+    min-width: 160px;
+    max-width: calc(100vw - 70px); /* o'ng tarafdagi tugmalar uchun joy qoldirish */
+    border-radius: 10px;
+  }
+
+  /* Mobilda toggle tugmasi ko'rinadi, header bosiladi */
+  .legend-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .legend-header {
+    cursor: pointer;
+  }
+
+  .legend-title {
+    font-size: 10px;
+    letter-spacing: 0.5px;
+  }
+
+  .legend-subtitle {
+    font-size: 12px;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+  }
+
+  .legend-gradient-bar {
+    height: 6px;
+    margin-bottom: 8px;
+  }
+
+  .legend-row {
+    gap: 7px;
+    margin-bottom: 5px;
+  }
+
+  .legend-swatch {
+    width: 11px;
+    height: 11px;
+  }
+
+  .legend-label {
+    font-size: 11px;
+  }
+
+  /* --- Map controls: yuqoriroq ko'tar (legendani to'smasin) --- */
+  .map-controls {
+    bottom: 16px;
+    right: 12px;
+  }
+
+  .map-ctrl-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    border-radius: 9px;
+  }
 }
