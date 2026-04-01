@@ -59,6 +59,10 @@
   transform: scale(0.96);
 }
 
+/* Desktop: to'liq nom ko'rinadi, qisqa yashirin */
+.layer-btn-short { display: none; }
+.layer-btn-full  { display: inline; }
+
 /* ===== Chap pastki — Legenda ===== */
 .legend {
   position: absolute;
@@ -310,10 +314,14 @@
   }
 
   .layer-btn {
-    padding: 6px 14px;
+    padding: 5px 11px;
     font-size: 12px;
     flex-shrink: 0;  /* tugmalar kichraymaydi, scroll bo'ladi */
   }
+
+  /* Mobil: qisqa nom ko'rinadi, to'liq yashirin */
+  .layer-btn-short { display: inline; }
+  .layer-btn-full  { display: none; }
 
   /* --- Legenda: ixcham, collapsible --- */
   .legend {

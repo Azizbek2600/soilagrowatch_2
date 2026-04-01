@@ -68,8 +68,9 @@ function buildPalette(colorScale, codes) {
 // ─────────────────────────────────────────────
 const LAYERS = [
   {
-    id:    'ndvi',
-    label: 'NDVI (Vegetatsiya)',
+    id:         'ndvi',
+    label:      'NDVI (Vegetatsiya)',
+    shortLabel: 'NDVI',
     data:  ndviData,
     // Och yashildan → To'q yashilga (O'simlik qalinligi)
     colorScale: { from: '#d4edaa', to: '#1a6b2e' },
@@ -82,8 +83,9 @@ const LAYERS = [
     ],
   },
   {
-    id:    'ndwi',
-    label: 'NDWI (Namlik/Suv)',
+    id:         'ndwi',
+    label:      'NDWI (Namlik/Suv)',
+    shortLabel: 'NDWI',
     data:  ndwiData,
     // Och ko'kdan → To'q ko'kga (Namlik/Suv)
     colorScale: { from: '#cce9ff', to: '#084594' },
@@ -96,8 +98,9 @@ const LAYERS = [
     ],
   },
   {
-    id:    'si',
-    label: "SI (Sho'rlanish)",
+    id:         'si',
+    label:      "SI (Sho'rlanish)",
+    shortLabel: 'SI',
     data:  siData,
     // Yashildan (toza) → To'q qizilga (kuchli sho'rlangan)
     colorScale: { from: '#2d9e3e', to: '#8b0000' },
@@ -110,8 +113,9 @@ const LAYERS = [
     ],
   },
   {
-    id:    'bsi',
-    label: 'BSI (Ochiq tuproq)',
+    id:         'bsi',
+    label:      'BSI (Ochiq tuproq)',
+    shortLabel: 'BSI',
     data:  bsiData,
     // Och jigarrangdan → To'q jigarrangga (Ochiq tuproq)
     colorScale: { from: '#f5e4c3', to: '#4a2800' },
@@ -124,8 +128,9 @@ const LAYERS = [
     ],
   },
   {
-    id:    'umumiy',
-    label: 'Umumiy (Degradatsiya)',
+    id:         'umumiy',
+    label:      'Umumiy (Degradatsiya)',
+    shortLabel: 'Umumiy',
     data:  umumiyData,
     // Yashildan → Qizilga (Umumiy degradatsiya)
     colorScale: { from: '#2d9e3e', to: '#d7191c' },
@@ -320,7 +325,8 @@ function App() {
             className={`layer-btn${activeLayer.id === layer.id ? ' active' : ''}`}
             onClick={() => setActiveLayer(layer)}
           >
-            {layer.label}
+            <span className="layer-btn-short">{layer.shortLabel}</span>
+            <span className="layer-btn-full">{layer.label}</span>
           </button>
         ))}
       </div>
