@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet'
+import { useEffect } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import './App.css'
@@ -19,8 +20,6 @@ const DEFAULT_ZOOM   = 10
 
 // ─────────────────────────────────────────────
 // DINAMIK RANG HISOBLASH
-// Har bir qatlam uchun minimal va maksimal gridcode
-// asosida gradiyent ranglar avtomatik hisoblanadi
 // ─────────────────────────────────────────────
 function hexToRgb(hex) {
   const h = hex.replace('#', '')
@@ -47,7 +46,6 @@ function interpolateColor(from, to, t) {
   ])
 }
 
-// codes ro'yxati asosida to'liq palitrani avtomatik hisoblaydi
 function buildPalette(colorScale, codes) {
   const min   = Math.min(...codes)
   const max   = Math.max(...codes)
@@ -61,10 +59,7 @@ function buildPalette(colorScale, codes) {
 }
 
 // ─────────────────────────────────────────────
-// QATLAMLAR — har bir qatlam o'z rang palitrasiga ega
-// colorScale.from → boshlang'ich rang (minimal gridcode)
-// colorScale.to   → oxirgi rang (maksimal gridcode)
-// Palitra avtomatik hisoblanadi (buildPalette)
+// QATLAMLAR
 // ─────────────────────────────────────────────
 const LAYERS = [
   {
@@ -72,7 +67,6 @@ const LAYERS = [
     label:      'Umumiy (Degradatsiya)',
     shortLabel: 'Umumiy',
     data:  umumiyData,
-    // Yashildan → Qizilga (Umumiy degradatsiya)
     colorScale: { from: '#2d9e3e', to: '#d7191c' },
     legend: [
       { code: 1, label: "Degradatsiya yo'q" },
@@ -87,7 +81,6 @@ const LAYERS = [
     label:      'NDVI (Vegetatsiya)',
     shortLabel: 'NDVI',
     data:  ndviData,
-    // Och yashildan → To'q yashilga (O'simlik qalinligi)
     colorScale: { from: '#d4edaa', to: '#1a6b2e' },
     legend: [
       { code: 1, label: 'Suv' },
@@ -102,7 +95,6 @@ const LAYERS = [
     label:      'NDWI (Namlik/Suv)',
     shortLabel: 'NDWI',
     data:  ndwiData,
-    // Och ko'kdan → To'q ko'kga (Namlik/Suv)
     colorScale: { from: '#cce9ff', to: '#084594' },
     legend: [
       { code: 1, label: 'Juda quruq' },
@@ -117,7 +109,6 @@ const LAYERS = [
     label:      "SI (Sho'rlanish)",
     shortLabel: 'SI',
     data:  siData,
-    // Yashildan (toza) → To'q qizilga (kuchli sho'rlangan)
     colorScale: { from: '#2d9e3e', to: '#8b0000' },
     legend: [
       { code: 1, label: 'Suv' },
@@ -132,7 +123,6 @@ const LAYERS = [
     label:      'BSI (Ochiq tuproq)',
     shortLabel: 'BSI',
     data:  bsiData,
-    // Och jigarrangdan → To'q jigarrangga (Ochiq tuproq)
     colorScale: { from: '#f5e4c3', to: '#4a2800' },
     legend: [
       { code: 1, label: "Suv va zich o'simlik" },
@@ -144,14 +134,59 @@ const LAYERS = [
   },
 ]
 
-// Har bir qatlam uchun palitrani bir marta hisoblab, saqlash
 LAYERS.forEach(layer => {
   const codes = layer.legend.map(item => item.code)
   layer.palette = buildPalette(layer.colorScale, codes)
 })
 
 // ─────────────────────────────────────────────
-// CHOROPLETH STYLE — faol qatlam palitrasidan rang oladi
+// AGRO-MASLAHAT MANTIGI
+// ─────────────────────────────────────────────
+const ADVICE = {
+  umumiy: {
+    1: "Tuproq holati a'lo darajada. Amaldagi agrotexnik amallarni davom ettiring. Hosildorlikni saqlab qolish uchun muntazam monitoring tavsiya etiladi.",
+    2: "Yengil degradatsiya belgilari kuzatilmoqda. Organik o'g'itlar qo'llash va sug'orish rejimini optimallashtirish tavsiya etiladi.",
+    3: "O'rtacha degradatsiya aniqlandi. Tuproqni qayta tiklash uchun yashil o'g'itlar ekish, eroziyaga qarshi choralar ko'rish zarur.",
+    4: "Yuqori darajada degradatsiya! Zudlik bilan tuproqni yuvish, chuqur haydash va meliorativ tadbirlar o'tkazish tavsiya etiladi.",
+    5: "Juda yuqori degradatsiya! Kompleks melioratsiya va tuproqni qayta tiklash dasturi tuzish kerak. Agrotexnik mutaxassis bilan maslahatlashing.",
+  },
+  ndvi: {
+    1: "Bu hudud suv yuzasi. Drenaj tizimini tekshiring, suv bosishi muammosi bo'lsa zudlik bilan choralar ko'ring.",
+    2: "Yalangoch yer — o'simlik yo'q. Yashil o'tlarni ekish, eroziyadan himoya va namlikni saqlash uchun mulchalash tavsiya etiladi.",
+    3: "Siyrak o'simlik qoplami. Qo'shimcha sug'orish, azot o'g'itlari va parvarishlashni kuchaytirish tavsiya etiladi.",
+    4: "O'rtacha o'simlik qoplami — holat me'yorda. Sug'orish va o'g'itlash rejimini davom ettiring.",
+    5: "Zich o'simlik qoplami — a'lo holat. O'simliklarni kasallik va zararkunandalardan muhofaza qilishni kuchaytiring.",
+  },
+  ndwi: {
+    1: "Juda quruq zona. Zudlik bilan qo'shimcha sug'orish talab etiladi. Tomchilatib sug'orish tizimini joriy etish tavsiya etiladi.",
+    2: "Quruq hudud. Sug'orish normasi va chastotasini oshiring, tuproq namligini doimiy nazorat qiling.",
+    3: "Aralash namlik zona. Sug'orish rejimini optimallashtiring, namlikni bir tekis taqsimlash uchun tekislash ishlari o'tkazing.",
+    4: "Namlik darajasi yetarli. Amaldagi sug'orish rejimini davom ettiring, ortiqcha namlanishdan saqlaning.",
+    5: "Suv bosgan zona. Drenaj tizimini yaxshilang, ortiqcha namlikni kamaytirish uchun kanal tozalash ishlari talab etiladi.",
+  },
+  si: {
+    1: "Suv yuzasi. Atrofdagi dalalarning sho'rlanish darajasini muntazam nazorat qiling.",
+    2: "Sho'rlanish yo'q — a'lo holat. Amaldagi agrotexnik amallarni davom ettiring.",
+    3: "O'rtacha sho'rlanish. Yuvish sug'orishlarini o'tkazing va gipsni tuproqqa qo'llash tavsiya etiladi.",
+    4: "Yuqori sho'rlanish! Zudlik bilan desalinizatsiya tadbirlari — tuproqni intensiv yuvish va drenaj qazish zarur.",
+    5: "Juda yuqori sho'rlanish! Kompleks melioratsiya dasturi tuzish, o'simlik o'stirishni vaqtincha to'xtatish tavsiya etiladi.",
+  },
+  bsi: {
+    1: "Suv yoki zich o'simlik — sog'lom holat. Parvarishni davom ettiring.",
+    2: "O'simlik qoplami yaxshi. Muntazam sug'orish va o'g'itlash bilan holatni saqlang.",
+    3: "Aralash zona — ochiq tuproq bo'limlari mavjud. Mulchalash va oraliq ekinlar ekish tavsiya etiladi.",
+    4: "Ko'p qismi yalangoch tuproq. O'tlar ekish, organik modda qo'shish va eroziyadan muhofaza qilish zarur.",
+    5: "Kuchli degradatsiya — tuproq qayta tiklanishi kerak. Zudlik bilan agrotexnik va meliorativ tadbirlar o'tkazish talab etiladi.",
+  },
+}
+
+function getAdvice(layerId, gridcode) {
+  return ADVICE[layerId]?.[gridcode]
+    ?? "Bu hudud uchun ma'lumot yetarli emas. Qo'shimcha tahlil o'tkazish tavsiya etiladi."
+}
+
+// ─────────────────────────────────────────────
+// CHOROPLETH STYLE
 // ─────────────────────────────────────────────
 function makeStyle(palette) {
   return function choroplethStyle(feature) {
@@ -177,34 +212,6 @@ function MapFitBounds({ data }) {
     }
   }, [data, map])
   return null
-}
-
-// ─────────────────────────────────────────────
-// POPUP
-// ─────────────────────────────────────────────
-function onEachFeature(feature, leafletLayer) {
-  const p        = feature.properties
-  const gridcode = p.gridcode ?? '—'
-  const klass    = p.Klass ?? p.klass ?? '—'
-  const rawArea  = p.Maydoni ?? p.maydoni ?? p.area
-  const areaText = rawArea != null ? `${Number(rawArea).toFixed(2)} ga` : '—'
-
-  leafletLayer.bindPopup(`
-    <div class="popup-card">
-      <div class="popup-row">
-        <span class="popup-label">Sinf</span>
-        <span class="popup-value">${klass}</span>
-      </div>
-      <div class="popup-row">
-        <span class="popup-label">Gridcode</span>
-        <span class="popup-value">${gridcode}</span>
-      </div>
-      <div class="popup-row">
-        <span class="popup-label">Maydoni</span>
-        <span class="popup-value">${areaText}</span>
-      </div>
-    </div>
-  `, { maxWidth: 240, className: 'custom-popup' })
 }
 
 // ─────────────────────────────────────────────
@@ -254,14 +261,12 @@ function MapControls() {
 
 // ─────────────────────────────────────────────
 // LEGENDA — chap pastki burchak
-// Mobilda yig'ilib-yoziladigan (collapsible), desktopda doim ochiq
 // ─────────────────────────────────────────────
 function Legend({ layer }) {
   const [collapsed, setCollapsed] = useState(false)
 
   return (
     <div className={`legend${collapsed ? ' legend--collapsed' : ''}`}>
-      {/* Header — toggle tugmasi bilan */}
       <div className="legend-header" onClick={() => setCollapsed(c => !c)}>
         <div className="legend-header-text">
           <div className="legend-title">Analiz natijalari</div>
@@ -270,7 +275,6 @@ function Legend({ layer }) {
         <button
           className="legend-toggle-btn"
           aria-label={collapsed ? "Yoy" : "Yig'"}
-          title={collapsed ? "Legendani yoy" : "Legendani yig'"}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -288,18 +292,13 @@ function Legend({ layer }) {
         </button>
       </div>
 
-      {/* Kontent — collapsed holatda yashiriladi */}
       <div className="legend-body">
         <div className="legend-gradient-bar" style={{
           background: `linear-gradient(to right, ${layer.colorScale.from}, ${layer.colorScale.to})`,
         }} />
-
         {layer.legend.map(({ code, label }) => (
           <div key={code} className="legend-row">
-            <span
-              className="legend-swatch"
-              style={{ background: layer.palette[code] }}
-            />
+            <span className="legend-swatch" style={{ background: layer.palette[code] }} />
             <span className="legend-label">{label}</span>
           </div>
         ))}
@@ -309,11 +308,116 @@ function Legend({ layer }) {
 }
 
 // ─────────────────────────────────────────────
+// FEATURE PANEL — o'ng tomondan chiqadigan panel
+// ─────────────────────────────────────────────
+function FeaturePanel({ feature, layer, onClose }) {
+  const isOpen = Boolean(feature)
+
+  const p        = feature?.properties ?? {}
+  const gridcode = p.gridcode ?? p.Gridcode
+  const klass    = p.Klass ?? p.klass ?? '—'
+  const rawArea  = p.Maydoni ?? p.maydoni ?? p.area
+  const areaText = rawArea != null ? `${Number(rawArea).toFixed(2)} ga` : '—'
+
+  const statusEntry = layer.legend.find(l => l.code === gridcode)
+  const statusLabel = statusEntry?.label ?? '—'
+  const statusColor = layer.palette[gridcode] ?? '#999'
+  const advice      = feature ? getAdvice(layer.id, gridcode) : ''
+
+  return (
+    <>
+      {/* Mobil backdrop */}
+      {isOpen && (
+        <div className="fp-backdrop" onClick={onClose} />
+      )}
+
+      <div className={`feature-panel${isOpen ? ' open' : ''}`}>
+        {/* Header */}
+        <div className="fp-header">
+          <div className="fp-header-meta">
+            <span className="fp-header-tag">{layer.shortLabel}</span>
+            <span className="fp-header-title">Dala tahlili</span>
+          </div>
+          <button className="fp-close-btn" onClick={onClose} aria-label="Yopish">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="fp-body">
+          {/* Blok 1: Asosiy ko'rsatkichlar */}
+          <div className="fp-section">
+            <div className="fp-section-label">Asosiy ko'rsatkichlar</div>
+            <div className="fp-info-grid">
+              <div className="fp-info-item">
+                <span className="fp-info-key">Maydoni</span>
+                <span className="fp-info-val">{areaText}</span>
+              </div>
+              <div className="fp-info-item">
+                <span className="fp-info-key">Sinf</span>
+                <span className="fp-info-val">{klass}</span>
+              </div>
+              <div className="fp-info-item">
+                <span className="fp-info-key">Indeks qiymati</span>
+                <span className="fp-info-val">{gridcode ?? '—'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Blok 2: Hozirgi holat */}
+          <div className="fp-section">
+            <div className="fp-section-label">Hozirgi holat</div>
+            <div className="fp-status-card" style={{ borderLeftColor: statusColor }}>
+              <span className="fp-status-dot" style={{ background: statusColor }} />
+              <div className="fp-status-text">
+                <span className="fp-status-layer">{layer.label}</span>
+                <strong className="fp-status-val">{statusLabel}</strong>
+              </div>
+            </div>
+          </div>
+
+          {/* Blok 3: Agro-maslahat */}
+          <div className="fp-section">
+            <div className="fp-section-label">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+                style={{ marginRight: 5, verticalAlign: 'middle' }}>
+                <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+                <path d="M12 8v4M12 16h.01" />
+              </svg>
+              Agro-maslahat
+            </div>
+            <div className="fp-advice-text">{advice}</div>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ─────────────────────────────────────────────
 // ASOSIY APP
 // ─────────────────────────────────────────────
 function App() {
-  const [activeLayer, setActiveLayer] = useState(LAYERS[0])
+  const [activeLayer,     setActiveLayer]     = useState(LAYERS[0])
+  const [selectedFeature, setSelectedFeature] = useState(null)
+
   const hasFeatures = activeLayer.data?.features?.length > 0
+
+  function handleLayerChange(layer) {
+    setActiveLayer(layer)
+    setSelectedFeature(null)
+  }
+
+  // setSelectedFeature useState dan stable, shuning uchun [] dependency to'g'ri
+  const onEachFeature = useCallback((feature, leafletLayer) => {
+    leafletLayer.on('click', () => setSelectedFeature(feature))
+  }, [])
 
   return (
     <div className="app-container">
@@ -323,7 +427,7 @@ function App() {
           <button
             key={layer.id}
             className={`layer-btn${activeLayer.id === layer.id ? ' active' : ''}`}
-            onClick={() => setActiveLayer(layer)}
+            onClick={() => handleLayerChange(layer)}
           >
             <span className="layer-btn-short">{layer.shortLabel}</span>
             <span className="layer-btn-full">{layer.label}</span>
@@ -333,6 +437,13 @@ function App() {
 
       {/* Chap pastki — legenda */}
       <Legend layer={activeLayer} />
+
+      {/* O'ng panel — tanlangan dala ma'lumoti */}
+      <FeaturePanel
+        feature={selectedFeature}
+        layer={activeLayer}
+        onClose={() => setSelectedFeature(null)}
+      />
 
       {/* Xarita */}
       <MapContainer

@@ -298,6 +298,198 @@
   margin: 10px 14px;
 }
 
+/* ===== O'ng panel — Feature Panel ===== */
+.feature-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 340px;
+  height: 100%;
+  z-index: 1002;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: -6px 0 40px rgba(0, 0, 0, 0.18), -2px 0 8px rgba(0,0,0,0.08);
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.feature-panel.open {
+  transform: translateX(0);
+}
+
+/* Mobil backdrop */
+.fp-backdrop {
+  display: none;
+}
+
+/* Header */
+.fp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+  position: sticky;
+  top: 0;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 1;
+}
+
+.fp-header-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.fp-header-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.1);
+  padding: 2px 8px;
+  border-radius: 20px;
+  display: inline-block;
+  width: fit-content;
+}
+
+.fp-header-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.fp-close-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.fp-close-btn:hover {
+  background: rgba(0, 0, 0, 0.12);
+  color: #111;
+}
+
+/* Body */
+.fp-body {
+  padding: 16px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  flex: 1;
+}
+
+/* Section */
+.fp-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fp-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #999;
+  display: flex;
+  align-items: center;
+}
+
+/* Info grid */
+.fp-info-grid {
+  background: #f8f9fb;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+.fp-info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.fp-info-item:last-child {
+  border-bottom: none;
+}
+
+.fp-info-key {
+  font-size: 12px;
+  color: #888;
+}
+
+.fp-info-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+/* Status card */
+.fp-status-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f8f9fb;
+  border-radius: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(0,0,0,0.06);
+  border-left: 4px solid #999;
+}
+
+.fp-status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.fp-status-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fp-status-layer {
+  font-size: 11px;
+  color: #888;
+}
+
+.fp-status-val {
+  font-size: 14px;
+  color: #1a1a2e;
+}
+
+/* Advice */
+.fp-advice-text {
+  font-size: 13px;
+  color: #3a3a4a;
+  line-height: 1.65;
+  background: rgba(37, 99, 235, 0.05);
+  border: 1px solid rgba(37, 99, 235, 0.12);
+  border-radius: 12px;
+  padding: 14px;
+}
+
 /* =====================================================
    TABLET / KICHIK NOUTBUK (769px – 1199px)
    ===================================================== */
@@ -400,6 +592,56 @@
     height: 36px;
     font-size: 18px;
     border-radius: 9px;
+  }
+
+  /* --- Feature panel: mobilda pastdan chiqadi (bottom sheet) --- */
+  .feature-panel {
+    top: auto;
+    bottom: 0;
+    right: 0;
+    width: 100%;
+    height: auto;
+    max-height: 72vh;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.18);
+    transform: translateY(100%);
+  }
+
+  .feature-panel.open {
+    transform: translateY(0);
+  }
+
+  /* Mobil backdrop — orqa fonni xira qiladi */
+  .fp-backdrop {
+    display: block;
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 1001;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+
+  /* Bottom sheet yuqorisida tortib tutqich */
+  .fp-header::before {
+    content: '';
+    display: block;
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(0, 0, 0, 0.15);
+  }
+
+  .fp-header {
+    padding-top: 22px;
+  }
+
+  .fp-body {
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 24px));
   }
 }
 
