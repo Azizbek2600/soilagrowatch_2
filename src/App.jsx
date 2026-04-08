@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, GeoJSON, Marker, useMap } from 'react-leaflet'
 import { useEffect } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -186,6 +186,24 @@ function getAdvice(layerId, gridcode) {
 }
 
 // ─────────────────────────────────────────────
+// CUSTOM PIN ICON
+// ─────────────────────────────────────────────
+const PIN_ICON = L.divIcon({
+  className: '',
+  html: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40">
+    <filter id="shadow" x="-30%" y="-10%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.35)" />
+    </filter>
+    <path filter="url(#shadow)"
+      d="M16 2C9.373 2 4 7.373 4 14c0 9 12 24 12 24s12-15 12-24c0-6.627-5.373-12-12-12z"
+      fill="#1a73e8" />
+    <circle cx="16" cy="14" r="5" fill="white" />
+  </svg>`,
+  iconSize:   [32, 40],
+  iconAnchor: [16, 40],
+})
+
+// ─────────────────────────────────────────────
 // CHOROPLETH STYLE
 // ─────────────────────────────────────────────
 function makeStyle(palette) {
@@ -310,7 +328,7 @@ function Legend({ layer }) {
 // ─────────────────────────────────────────────
 // FEATURE PANEL — o'ng tomondan chiqadigan panel
 // ─────────────────────────────────────────────
-function FeaturePanel({ feature, layer, onClose }) {
+function FeaturePanel({ feature, lat, lng, layer, onClose }) {
   const isOpen = Boolean(feature)
 
   const p        = feature?.properties ?? {}
@@ -323,6 +341,12 @@ function FeaturePanel({ feature, layer, onClose }) {
   const statusLabel = statusEntry?.label ?? '—'
   const statusColor = layer.palette[gridcode] ?? '#999'
   const advice      = feature ? getAdvice(layer.id, gridcode) : ''
+
+  const latStr   = lat != null ? lat.toFixed(5) : null
+  const lngStr   = lng != null ? lng.toFixed(5) : null
+  const mapsUrl  = lat != null
+    ? `https://www.google.com/maps/search/?api=1&query=${latStr},${lngStr}`
+    : null
 
   return (
     <>
@@ -365,7 +389,30 @@ function FeaturePanel({ feature, layer, onClose }) {
                 <span className="fp-info-key">Indeks qiymati</span>
                 <span className="fp-info-val">{gridcode ?? '—'}</span>
               </div>
+              {latStr && (
+                <div className="fp-info-item">
+                  <span className="fp-info-key">Koordinata</span>
+                  <span className="fp-info-val fp-coords">{latStr}, {lngStr}</span>
+                </div>
+              )}
             </div>
+
+            {mapsUrl && (
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="fp-maps-btn"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15"
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+                Marshrut qurish (Google Maps)
+              </a>
+            )}
           </div>
 
           {/* Blok 2: Hozirgi holat */}
@@ -416,7 +463,9 @@ function App() {
 
   // setSelectedFeature useState dan stable, shuning uchun [] dependency to'g'ri
   const onEachFeature = useCallback((feature, leafletLayer) => {
-    leafletLayer.on('click', () => setSelectedFeature(feature))
+    leafletLayer.on('click', (e) => {
+      setSelectedFeature({ feature, lat: e.latlng.lat, lng: e.latlng.lng })
+    })
   }, [])
 
   return (
@@ -440,7 +489,9 @@ function App() {
 
       {/* O'ng panel — tanlangan dala ma'lumoti */}
       <FeaturePanel
-        feature={selectedFeature}
+        feature={selectedFeature?.feature ?? null}
+        lat={selectedFeature?.lat}
+        lng={selectedFeature?.lng}
         layer={activeLayer}
         onClose={() => setSelectedFeature(null)}
       />
@@ -467,6 +518,13 @@ function App() {
             data={activeLayer.data}
             style={makeStyle(activeLayer.palette)}
             onEachFeature={onEachFeature}
+          />
+        )}
+
+        {selectedFeature?.lat != null && (
+          <Marker
+            position={[selectedFeature.lat, selectedFeature.lng]}
+            icon={PIN_ICON}
           />
         )}
       </MapContainer>
