@@ -206,12 +206,12 @@ const PIN_ICON = L.divIcon({
 // ─────────────────────────────────────────────
 // CHOROPLETH STYLE
 // ─────────────────────────────────────────────
-function makeStyle(palette) {
+function makeStyle(palette, opacity = 0.8) {
   return function choroplethStyle(feature) {
     const code = feature.properties[PROPERTY_KEY]
     return {
       fillColor:   palette[code] ?? '#999999',
-      fillOpacity: 0.75,
+      fillOpacity: opacity,
       stroke:      false,
     }
   }
@@ -453,6 +453,7 @@ function FeaturePanel({ feature, lat, lng, layer, onClose }) {
 function App() {
   const [activeLayer,     setActiveLayer]     = useState(LAYERS[0])
   const [selectedFeature, setSelectedFeature] = useState(null)
+  const [layerOpacity,    setLayerOpacity]    = useState(0.8)
 
   const hasFeatures = activeLayer.data?.features?.length > 0
 
@@ -482,6 +483,26 @@ function App() {
             <span className="layer-btn-full">{layer.label}</span>
           </button>
         ))}
+      </div>
+
+      {/* Shaffoflik slideri — tugmalar ostida, markazda */}
+      <div className="opacity-slider-container">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13"
+          viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          style={{ opacity: 0.8, flexShrink: 0 }}>
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 2a10 10 0 0 1 0 20" fill="currentColor" />
+        </svg>
+        <input
+          type="range"
+          min="0" max="1" step="0.05"
+          value={layerOpacity}
+          onChange={e => setLayerOpacity(parseFloat(e.target.value))}
+          className="opacity-range"
+          aria-label="Qatlam shaffofligi"
+        />
+        <span className="opacity-pct">{Math.round(layerOpacity * 100)}%</span>
       </div>
 
       {/* Chap pastki — legenda */}
@@ -516,7 +537,7 @@ function App() {
           <GeoJSON
             key={activeLayer.id}
             data={activeLayer.data}
-            style={makeStyle(activeLayer.palette)}
+            style={makeStyle(activeLayer.palette, layerOpacity)}
             onEachFeature={onEachFeature}
           />
         )}

@@ -298,6 +298,71 @@
   margin: 10px 14px;
 }
 
+/* ===== Shaffoflik Slideri ===== */
+.opacity-slider-container {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  left: auto;
+  transform: none;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 15px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 20px;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+}
+
+.opacity-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 120px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.3);
+  outline: none;
+  cursor: pointer;
+}
+
+.opacity-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.opacity-range::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+}
+
+.opacity-range::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  border: none;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+
+.opacity-pct {
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 28px;
+  text-align: right;
+  letter-spacing: 0.3px;
+}
+
 /* ===== O'ng panel — Feature Panel ===== */
 .feature-panel {
   position: absolute;
@@ -541,6 +606,36 @@
    RESPONSIVE — Mobil qurilmalar uchun (@max-width: 768px)
    ===================================================== */
 @media (max-width: 768px) {
+
+  /* --- Shaffoflik slideri: mobil — layer-controls OSTIDA, o'ngda --- */
+  .opacity-slider-container {
+    top: calc(max(15px, env(safe-area-inset-top, 15px)) + 54px);
+    right: 10px;
+    left: auto;
+    transform: none;
+    padding: 5px 10px;
+    gap: 5px;
+  }
+
+  .opacity-range {
+    width: 80px;
+    height: 4px;
+  }
+
+  .opacity-range::-webkit-slider-thumb {
+    width: 20px;
+    height: 20px;
+  }
+
+  .opacity-range::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+  }
+
+  .opacity-pct {
+    font-size: 10.5px;
+    min-width: 24px;
+  }
 
   /* --- Qatlam tugmalari: mobil --- */
   .layer-controls {
