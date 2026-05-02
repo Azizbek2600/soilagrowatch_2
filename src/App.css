@@ -202,7 +202,7 @@
 /* ===== O'ng pastki — Map Controls (Zoom + Lokatsiya) ===== */
 .map-controls {
   position: absolute;
-  bottom: 32px;
+  top: 80px;
   right: 16px;
   z-index: 1000;
   display: flex;
@@ -912,4 +912,1079 @@
 @media (max-width: 360px) {
   .layer-controls { width: calc(100vw - 14px); max-width: calc(100vw - 14px); }
   .layer-btn { padding: 6px 1px; font-size: 11px; }
+}
+
+/* =====================================================
+   TAB BAR — AJRATUVCHI
+   ===================================================== */
+.layer-btn-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+  margin: 0 2px;
+  align-self: center;
+}
+
+/* "Tahlillar" tugmasi — ko'k aktiv rang */
+.layer-btn--tahlil.active {
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.45);
+}
+
+.layer-btn--tahlil.active:hover {
+  background: #1d4ed8;
+}
+
+/* =====================================================
+   TAHLILLAR DASHBOARD — Full-screen overlay
+   ===================================================== */
+.dashboard-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2000;
+  background: #f5f6fa;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Header */
+.dash-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 24px;
+  background: #fff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+}
+
+.dash-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  background: #fff;
+  color: #444;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.dash-back-btn:hover {
+  background: #f5f6fa;
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+.dash-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0;
+  flex: 1;
+}
+
+/* Scrollable content */
+.dash-content {
+  padding: 20px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 1160px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ── Stat kartalar ── */
+.dash-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.stat-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.stat-card--warn   { border-left: 4px solid #f59e0b; }
+.stat-card--drought { border-left: 4px solid #f97316; }
+
+.stat-icon {
+  font-size: 30px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.stat-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: #1a1a2e;
+  line-height: 1.15;
+}
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.stat-sub {
+  font-size: 11.5px;
+  color: #aaa;
+  margin-top: 2px;
+}
+
+/* ── Asosiy grid ── */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 14px;
+  align-items: start;
+}
+
+.dash-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Kartalar ── */
+.dash-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dash-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* ── Ekin progress barlar ── */
+.crop-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.crop-progress-item {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.crop-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.crop-progress-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.crop-holat-badge {
+  font-size: 10px;
+  font-weight: 500;
+  color: #888;
+  background: #f0f2f5;
+  padding: 2px 7px;
+  border-radius: 20px;
+}
+
+.crop-progress-stats {
+  font-size: 12px;
+  color: #888;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.progress-bar-track {
+  height: 8px;
+  background: #f0f2f5;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Ekin jami statistika */
+.dash-crop-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.dash-crop-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.dash-crop-stat-val {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.dash-crop-stat-lbl {
+  font-size: 10.5px;
+  color: #aaa;
+  text-align: center;
+}
+
+/* ── Keyingi qadamlar ── */
+.steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  background: #f8f9fb;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.step-icon { font-size: 18px; flex-shrink: 0; }
+
+.step-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+
+.step-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.step-status {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  width: fit-content;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.step-status--done { background: rgba(34, 197, 94, 0.12);    color: #15803d; }
+.step-status--plan { background: rgba(234, 179, 8, 0.12);    color: #b45309; }
+.step-status--dev  { background: rgba(100, 116, 139, 0.12);  color: #475569; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .dash-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .dash-stats-row { grid-template-columns: 1fr; }
+  .dash-header { padding: 12px 16px; }
+  .dash-content { padding: 14px 16px 28px; }
+  .dash-title { font-size: 14px; }
+  .stat-value { font-size: 18px; }
+}
+
+/* =====================================================
+   LABORATORIYA BO'LIMI
+   ===================================================== */
+.lab-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lab-items {
+  background: #f8f9fb;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.lab-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  gap: 12px;
+}
+
+.lab-item:last-child {
+  border-bottom: none;
+}
+
+.lab-item-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.lab-item-label {
+  font-size: 11.5px;
+  color: #888;
+  line-height: 1.3;
+}
+
+.lab-item-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.lab-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.lab-badge--normal {
+  background: rgba(34, 197, 94, 0.12);
+  color: #15803d;
+}
+
+.lab-badge--warning {
+  background: rgba(234, 179, 8, 0.12);
+  color: #b45309;
+}
+
+.lab-badge--danger {
+  background: rgba(220, 38, 38, 0.12);
+  color: #dc2626;
+}
+
+.lab-report-btn {
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(0, 0, 0, 0.1);
+  background: #f8f9fb;
+  color: #aaa;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: not-allowed;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.lab-note {
+  font-size: 11px;
+  color: #aaa;
+  text-align: center;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* =====================================================
+   EKINLAR PANELI
+   ===================================================== */
+.crops-list {
+  background: #f8f9fb;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.crop-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.crop-item:last-child {
+  border-bottom: none;
+}
+
+.crop-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  flex-shrink: 0;
+}
+
+.crop-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.crop-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.crop-holat {
+  font-size: 11px;
+  color: #888;
+}
+
+.crop-metrics {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.crop-area {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.crop-pct {
+  font-size: 11px;
+  color: #888;
+}
+
+.crops-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+  gap: 2px;
+}
+
+.crops-bar-seg {
+  height: 100%;
+  min-width: 4px;
+  transition: opacity 0.15s;
+}
+
+.crops-bar-seg:hover {
+  opacity: 0.75;
+}
+
+.crop-map-note {
+  font-size: 11px;
+  color: #aaa;
+  margin: 6px 0 0;
+  line-height: 1.5;
+}
+
+/* =====================================================
+   OB-HAVO BO'LIMI (WeatherSection — TahlillarPanel ichida)
+   ===================================================== */
+.wp-loading {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #888;
+  font-size: 13px;
+}
+
+.wp-alert {
+  padding: 11px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.wp-alert--frost {
+  background: rgba(220, 38, 38, 0.09);
+  border: 1px solid rgba(220, 38, 38, 0.28);
+  color: #dc2626;
+}
+
+.wp-alert--drought {
+  background: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  color: #b45309;
+}
+
+.wp-alert--normal {
+  background: rgba(34, 197, 94, 0.09);
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  color: #15803d;
+}
+
+.wp-table-wrapper {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+.wp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.wp-table th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #999;
+  background: #f8f9fb;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+.wp-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  color: #333;
+}
+
+.wp-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.wp-cold { color: #2563eb; font-weight: 600; }
+.wp-hot  { color: #dc2626; font-weight: 600; }
+.wp-dry  { color: #b45309; }
+.wp-wet  { color: #2563eb; }
+
+.wp-row--cold {
+  background: rgba(37, 99, 235, 0.04);
+}
+
+.wp-footer {
+  font-size: 10.5px;
+  color: #aaa;
+  text-align: right;
+}
+
+/* =====================================================
+   TAHLILLAR PANELI — bo'limlar
+   ===================================================== */
+.tahlil-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tahlil-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a1a2e;
+  padding-bottom: 2px;
+}
+
+.tahlil-divider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.07);
+  margin: 4px -20px;
+}
+
+/* =====================================================
+   DB-* DASHBOARD — yangi dizayn
+   ===================================================== */
+
+/* Full-screen overlay */
+.db-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2000;
+  background: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+  font-family: system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+}
+
+/* Sticky header */
+.db-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 28px;
+  background: #fff;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  flex-shrink: 0;
+}
+
+.db-back {
+  padding: 8px 18px;
+  border: 1.5px solid rgba(0,0,0,0.13);
+  border-radius: 10px;
+  background: #fff;
+  color: #444;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+.db-back:hover {
+  background: #f0f0f0;
+  border-color: rgba(0,0,0,0.22);
+}
+
+.db-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0;
+  flex: 1;
+  text-align: center;
+}
+
+/* Scrollable body */
+.db-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Stat cards row ── */
+.db-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.db-stat {
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px 22px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+  border-left: 5px solid transparent;
+}
+.db-stat--green { border-left-color: #22c55e; }
+.db-stat--red   { border-left-color: #ef4444; }
+.db-stat--yellow{ border-left-color: #f59e0b; }
+
+.db-stat-icon { font-size: 28px; flex-shrink: 0; }
+
+.db-stat-num {
+  font-size: 22px;
+  font-weight: 800;
+  color: #1a1a2e;
+  line-height: 1.1;
+}
+.db-stat--green .db-stat-num { color: #16a34a; }
+.db-stat--red   .db-stat-num { color: #dc2626; }
+.db-stat--yellow .db-stat-num { color: #d97706; }
+
+.db-stat-lbl {
+  font-size: 12px;
+  color: #888;
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+/* ── Middle 2-column grid ── */
+.db-mid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+/* ── Generic card ── */
+.db-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px 22px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+}
+
+.db-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+}
+
+/* ── Crops section ── */
+.db-crops {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.db-crop-row { display: flex; flex-direction: column; gap: 5px; }
+
+.db-crop-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.db-crop-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.db-crop-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  flex: 1;
+}
+
+.db-crop-info {
+  font-size: 12px;
+  color: #888;
+  white-space: nowrap;
+}
+
+.db-bar-track {
+  height: 8px;
+  background: #f0f0f0;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.db-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.db-crop-totals {
+  display: flex;
+  gap: 0;
+  border-top: 1px solid rgba(0,0,0,0.07);
+  padding-top: 12px;
+  margin-top: 4px;
+}
+
+.db-crop-total-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.db-crop-total-num {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.db-crop-total-lbl {
+  font-size: 11px;
+  color: #999;
+}
+
+/* ── Lab grid — 4 cards ── */
+.db-lab-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.db-lab-card {
+  border-radius: 12px;
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  border: 1.5px solid transparent;
+}
+.db-lab-card--normal  { background: #f0fdf4; border-color: #bbf7d0; }
+.db-lab-card--warning { background: #fffbeb; border-color: #fde68a; }
+.db-lab-card--danger  { background: #fef2f2; border-color: #fecaca; }
+
+.db-lab-val {
+  font-size: 24px;
+  font-weight: 800;
+  color: #1a1a2e;
+  line-height: 1;
+}
+
+.db-lab-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+}
+
+.db-lab-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 99px;
+}
+.db-lab-badge--normal  { background: #dcfce7; color: #166534; }
+.db-lab-badge--warning { background: #fef9c3; color: #854d0e; }
+.db-lab-badge--danger  { background: #fee2e2; color: #991b1b; }
+
+.db-lab-note {
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+  margin: 0;
+  padding-top: 4px;
+  border-top: 1px dashed rgba(0,0,0,0.1);
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .db-mid { grid-template-columns: 1fr; }
+  .db-lab-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .db-scroll { padding: 16px 14px 28px; }
+  .db-stats { grid-template-columns: 1fr; }
+  .db-lab-grid { grid-template-columns: repeat(2, 1fr); }
+  .db-header { padding: 12px 16px; }
+  .db-title { font-size: 13px; }
+}
+
+/* =====================================================
+   AI CHAT WIDGET
+   ===================================================== */
+
+/* ── Floating action button ── */
+.chat-fab {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 3000;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: #166534;
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 0 0 3px rgba(34,197,94,0.2);
+  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.chat-fab:hover {
+  background: #15803d;
+  transform: scale(1.07);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.4), 0 0 0 4px rgba(34,197,94,0.25);
+}
+.chat-fab--open {
+  background: #374151;
+  font-size: 18px;
+}
+.chat-fab--open:hover { background: #4b5563; }
+
+/* ── Chat window ── */
+.chat-window {
+  position: fixed;
+  bottom: 92px;
+  right: 28px;
+  z-index: 3000;
+  width: 360px;
+  height: 480px;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.14);
+  overflow: hidden;
+  animation: chat-pop 0.2s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+@keyframes chat-pop {
+  from { opacity: 0; transform: scale(0.92) translateY(12px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+/* ── Header ── */
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: #166534;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.chat-close {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.8);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  transition: color 0.1s;
+}
+.chat-close:hover { color: #fff; }
+
+/* ── Messages area ── */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #f9fafb;
+}
+.chat-messages::-webkit-scrollbar { width: 4px; }
+.chat-messages::-webkit-scrollbar-track { background: transparent; }
+.chat-messages::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+
+/* ── Bubbles ── */
+.chat-bubble {
+  max-width: 82%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.chat-bubble--user {
+  align-self: flex-end;
+  background: #166534;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-bubble--assistant {
+  align-self: flex-start;
+  background: #e5e7eb;
+  color: #1f2937;
+  border-bottom-left-radius: 4px;
+}
+
+.chat-bubble--loading {
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* ── Input row ── */
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.chat-input {
+  flex: 1;
+  padding: 9px 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 24px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+  background: #f9fafb;
+  color: #111;
+}
+.chat-input:focus { border-color: #22c55e; background: #fff; }
+
+.chat-send {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: #166534;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, transform 0.1s;
+}
+.chat-send:hover:not(:disabled) { background: #15803d; transform: scale(1.05); }
+.chat-send:disabled { background: #d1d5db; cursor: not-allowed; }
+
+@media (max-width: 480px) {
+  .chat-window { width: calc(100vw - 24px); right: 12px; }
+  .chat-fab    { right: 16px; bottom: 16px; }
 }

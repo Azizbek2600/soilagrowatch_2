@@ -1,0 +1,10 @@
+{
+  "type": "FeatureCollection",
+  "name": "Ekinlar",
+  "features": [
+    {"type": "Feature", "properties": {"ekin": "Paxta",     "maydoni": 145.3, "holat": "O'sish bosqichi"},   "geometry": null},
+    {"type": "Feature", "properties": {"ekin": "Bug'doy",   "maydoni": 89.7,  "holat": "Pishish bosqichi"}, "geometry": null},
+    {"type": "Feature", "properties": {"ekin": "Qizilmiya", "maydoni": 34.2,  "holat": "Yetilish bosqichi"},"geometry": null},
+    {"type": "Feature", "properties": {"ekin": "Bo'sh yer", "maydoni": 28.1,  "holat": "Ishlanmagan"},      "geometry": null}
+  ]
+}
