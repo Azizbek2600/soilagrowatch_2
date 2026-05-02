@@ -204,6 +204,24 @@ const PIN_ICON = L.divIcon({
 })
 
 // ─────────────────────────────────────────────
+// GEOJSON LAYER — mount bo'lganda onReady chaqiradi
+// ─────────────────────────────────────────────
+function GeoJSONLayer({ layer, opacity, onEachFeature, onReady }) {
+  useEffect(() => {
+    const timer = setTimeout(onReady, 120)
+    return () => clearTimeout(timer)
+  }, [layer.id])
+
+  return (
+    <GeoJSON
+      data={layer.data}
+      style={makeStyle(layer.palette, opacity)}
+      onEachFeature={onEachFeature}
+    />
+  )
+}
+
+// ─────────────────────────────────────────────
 // CHOROPLETH STYLE
 // ─────────────────────────────────────────────
 function makeStyle(palette, opacity = 0.8) {
@@ -454,12 +472,14 @@ function App() {
   const [activeLayer,     setActiveLayer]     = useState(LAYERS[0])
   const [selectedFeature, setSelectedFeature] = useState(null)
   const [layerOpacity,    setLayerOpacity]    = useState(0.8)
+  const [isLoading,       setIsLoading]       = useState(true)
 
   const hasFeatures = activeLayer.data?.features?.length > 0
 
   function handleLayerChange(layer) {
     setActiveLayer(layer)
     setSelectedFeature(null)
+    setIsLoading(true)
   }
 
   // setSelectedFeature useState dan stable, shuning uchun [] dependency to'g'ri
@@ -517,6 +537,14 @@ function App() {
         onClose={() => setSelectedFeature(null)}
       />
 
+      {/* Yuklanish animatsiyasi */}
+      <div className={`map-loader${isLoading ? ' visible' : ''}`}>
+        <div className="map-loader-box">
+          <div className="map-loader-spinner" />
+          <span className="map-loader-text">Ma'lumotlar tahlil qilinmoqda...</span>
+        </div>
+      </div>
+
       {/* Xarita */}
       <MapContainer
         center={DEFAULT_CENTER}
@@ -534,11 +562,12 @@ function App() {
         <MapControls />
 
         {hasFeatures && (
-          <GeoJSON
+          <GeoJSONLayer
             key={activeLayer.id}
-            data={activeLayer.data}
-            style={makeStyle(activeLayer.palette, layerOpacity)}
+            layer={activeLayer}
+            opacity={layerOpacity}
             onEachFeature={onEachFeature}
+            onReady={() => setIsLoading(false)}
           />
         )}
 
