@@ -379,10 +379,156 @@ function WeatherContent() {
 }
 
 // ─────────────────────────────────────────────
+// MODAL: Laboratoriya natijasini yuklash
+// ─────────────────────────────────────────────
+function UploadModal({ onClose }) {
+  const [done,    setDone]    = useState(false)
+  const [manual,  setManual]  = useState({ ph:'', ec:'', organic:'', sar:'' })
+  const [file,    setFile]    = useState(null)
+
+  useEffect(() => {
+    function onKey(e) { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  function handleSubmit(e) {
+    e.preventDefault()
+    setDone(true)
+  }
+
+  return (
+    <div className="lm-backdrop" onClick={onClose}>
+      <div className="lm-box" onClick={e => e.stopPropagation()}>
+        <div className="lm-header">
+          <span>Laboratoriya tahlilini yuklash</span>
+          <button className="lm-close" onClick={onClose}>✕</button>
+        </div>
+        {done ? (
+          <div className="lm-success">
+            ✅ Rahmat! Natija qabul qilindi va AI modeliga qo'shildi
+          </div>
+        ) : (
+          <form className="lm-body" onSubmit={handleSubmit}>
+            <p className="lm-desc">
+              Agar sizda mustaqil laboratoriya natijasi bo'lsa, uni shu yerga yuklang.
+              Bizning AI modelimiz natijani o'rganib, kelajakdagi tahlillar aniqligini oshiradi.
+            </p>
+
+            <label className="lm-label">Fayl yuklash (PDF, JPG, PNG)</label>
+            <input
+              type="file" accept=".pdf,.jpg,.jpeg,.png"
+              className="lm-file"
+              onChange={e => setFile(e.target.files[0])}
+            />
+
+            <div className="lm-divider"><span>yoki qo'lda kiriting</span></div>
+
+            <div className="lm-grid">
+              {[
+                { key:'ph',      label:'pH darajasi',   placeholder:'7.0' },
+                { key:'ec',      label:'EC (dS/m)',      placeholder:'4.0' },
+                { key:'organic', label:'Organik modda (%)', placeholder:'1.5' },
+                { key:'sar',     label:'SAR',            placeholder:'10.0' },
+              ].map(f => (
+                <div key={f.key} className="lm-field">
+                  <label className="lm-field-label">{f.label}</label>
+                  <input
+                    type="number" step="0.1" placeholder={f.placeholder}
+                    className="lm-input"
+                    value={manual[f.key]}
+                    onChange={e => setManual(p => ({ ...p, [f.key]: e.target.value }))}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <button type="submit" className="lm-submit">Yuborish</button>
+          </form>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────
+// MODAL: Laboratoriya buyurtma
+// ─────────────────────────────────────────────
+function OrderModal({ onClose }) {
+  const [done, setDone] = useState(false)
+  const [form, setForm] = useState({ name:'', phone:'', region:'', area:'', note:'' })
+
+  useEffect(() => {
+    function onKey(e) { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  function set(k) { return e => setForm(p => ({ ...p, [k]: e.target.value })) }
+
+  function handleSubmit(e) {
+    e.preventDefault()
+    setDone(true)
+  }
+
+  return (
+    <div className="lm-backdrop" onClick={onClose}>
+      <div className="lm-box" onClick={e => e.stopPropagation()}>
+        <div className="lm-header">
+          <span>Tuproq tahlili xizmati</span>
+          <button className="lm-close" onClick={onClose}>✕</button>
+        </div>
+        {done ? (
+          <div className="lm-success">
+            ✅ Buyurtmangiz qabul qilindi! 24 soat ichida bog'lanamiz
+          </div>
+        ) : (
+          <form className="lm-body" onSubmit={handleSubmit}>
+            <p className="lm-desc">
+              Bizning hamkor laboratoriyamiz sizning yeringizdan namuna olib, to'liq tahlil qiladi.
+              Natija 5–7 kun ichida tayyor bo'ladi va avtomatik tarzda tizimga yuklanadi.
+            </p>
+
+            <div className="lm-grid">
+              <div className="lm-field lm-field--full">
+                <label className="lm-field-label">Ism *</label>
+                <input required className="lm-input" placeholder="To'liq ismingiz" value={form.name} onChange={set('name')}/>
+              </div>
+              <div className="lm-field">
+                <label className="lm-field-label">Telefon *</label>
+                <input required className="lm-input" placeholder="+998 90 000 00 00" value={form.phone} onChange={set('phone')}/>
+              </div>
+              <div className="lm-field">
+                <label className="lm-field-label">Hudud *</label>
+                <input required className="lm-input" placeholder="Tuman, qishloq" value={form.region} onChange={set('region')}/>
+              </div>
+              <div className="lm-field">
+                <label className="lm-field-label">Maydon (gektar)</label>
+                <input type="number" min="0" step="0.1" className="lm-input" placeholder="10.0" value={form.area} onChange={set('area')}/>
+              </div>
+              <div className="lm-field lm-field--full">
+                <label className="lm-field-label">Izoh</label>
+                <textarea className="lm-input lm-textarea" placeholder="Qo'shimcha ma'lumot..." value={form.note} onChange={set('note')}/>
+              </div>
+            </div>
+
+            <div className="lm-price">💰 Narx: <strong>250,000 so'm / namuna</strong></div>
+
+            <button type="submit" className="lm-submit">Buyurtma berish</button>
+          </form>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────
 // TAHLILLAR DASHBOARD (full-screen overlay)
 // ─────────────────────────────────────────────
 function TahlillarDashboard({ onClose }) {
-  const [mounted, setMounted] = useState(false)
+  const [mounted,     setMounted]     = useState(false)
+  const [uploadOpen,  setUploadOpen]  = useState(false)
+  const [orderOpen,   setOrderOpen]   = useState(false)
   useEffect(() => { const t = setTimeout(() => setMounted(true), 80); return () => clearTimeout(t) }, [])
 
   const totalArea = cropsData.features.reduce((sum, f) => sum + f.properties.maydoni, 0)
@@ -518,15 +664,34 @@ function TahlillarDashboard({ onClose }) {
               </div>
             ))}
           </div>
-          <div className="db-lab-footer">
-            <p className="db-lab-note">Laboratoriya tahlili ixtiyoriy — aniqlikni 95% gacha oshiradi</p>
-            <button className="db-lab-download" onClick={() => alert('Hisobot tayyorlanmoqda...')}>
-              📥 Laboratoriya hisobotini yuklab olish
+
+          {/* ── Tugmalar qatori ── */}
+          <div className="db-lab-actions">
+            <button className="db-lab-btn db-lab-btn--upload" onClick={() => setUploadOpen(true)}>
+              📤 Laboratoriya natijasini yuklash
+            </button>
+            <button className="db-lab-btn db-lab-btn--order" onClick={() => setOrderOpen(true)}>
+              🔬 Laboratoriya xizmatiga buyurtma
+            </button>
+            <button className="db-lab-btn db-lab-btn--download" onClick={() => alert('Hisobot tayyorlanmoqda...')}>
+              📥 Yuklab olish
             </button>
           </div>
+
+          {/* ── AI izoh ── */}
+          <p className="db-lab-ai-note">
+            🤖 AI modelimiz har bir laboratoriya natijasidan o'rganib boradi — ma'lumotlar qancha ko'p bo'lsa, masofadan tahlil shunchalik aniqroq bo'ladi.
+          </p>
         </div>
 
       </div>
+
+      {/* ── Modal 1: Natija yuklash ── */}
+      {uploadOpen && <UploadModal onClose={() => setUploadOpen(false)}/>}
+
+      {/* ── Modal 2: Buyurtma ── */}
+      {orderOpen && <OrderModal onClose={() => setOrderOpen(false)}/>}
+
     </div>
   )
 }
