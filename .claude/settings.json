@@ -2,7 +2,30 @@
   "permissions": {
     "allow": [
       "Bash(npm run *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(node -e ' *)",
+      "Read(//Users/azizbek/Desktop/**)",
+      "Bash(node -e \"require\\('./server.js'\\)\")",
+      "Bash(kill %1)",
+      "Bash(timeout 8 node server.js)",
+      "Bash(node server.js)",
+      "Bash(wait)",
+      "Bash(curl -s http://localhost:3001/api/health)",
+      "Bash(python3 -m json.tool)",
+      "Bash(xargs kill -9)",
+      "Bash(node --input-type=module --eval ' *)",
+      "Bash(npx vite *)",
+      "Bash(sed -n '1338,1348p' /Users/azizbek/Desktop/SoilAgroWatch/src/App.css)",
+      "Bash(sed -n '1503,1513p' /Users/azizbek/Desktop/SoilAgroWatch/src/App.css)",
+      "Bash(lsof -ti:5173)",
+      "Read(//tmp/**)",
+      "Bash(grep -E \"server|backend|\\\\.js$\")",
+      "Bash(grep -E \"^express$|^cors$|^dotenv$\")",
+      "Bash(node --input-type=module --eval \"import './server.js'\")"
+    ],
+    "additionalDirectories": [
+      "/Users/azizbek/Desktop/SoilAgroWatch/src",
+      "/Users/azizbek/Desktop"
     ]
   }
 }

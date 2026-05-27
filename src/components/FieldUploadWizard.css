@@ -1,0 +1,339 @@
+/* ══════════════════════════════════════════
+   FieldUploadWizard — light agri-tech theme
+   ══════════════════════════════════════════ */
+
+.wiz-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: rgba(0, 0, 0, 0.36);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.wiz-modal {
+  background: #FFFFFF;
+  border: 1px solid #E4E7EC;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: calc(100vh - 40px);
+}
+
+/* ── Header ───────────────────────────────── */
+.wiz-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid #E8EAED;
+  flex-shrink: 0;
+}
+
+.wiz-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1A1D23;
+}
+
+.wiz-title-icon { font-size: 18px; }
+
+.wiz-close {
+  background: none;
+  border: none;
+  color: #9BA3AF;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+  line-height: 1;
+}
+.wiz-close:hover { color: #1A1D23; background: #F3F4F6; }
+
+/* ── Step bar ─────────────────────────────── */
+.wiz-steps {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid #E8EAED;
+  flex-shrink: 0;
+}
+
+.wiz-step {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 1;
+}
+
+.wiz-step-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid #E4E7EC;
+  background: #F7F8FA;
+  color: #9BA3AF;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.wiz-step--active .wiz-step-dot {
+  border-color: #1B7C45;
+  background: #EBF5EE;
+  color: #1B7C45;
+}
+
+.wiz-step--past .wiz-step-dot {
+  border-color: #1B7C45;
+  background: #1B7C45;
+  color: #FFFFFF;
+}
+
+.wiz-step-label {
+  font-size: 12px;
+  color: #9BA3AF;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.wiz-step--active .wiz-step-label { color: #1A1D23; }
+.wiz-step--past  .wiz-step-label  { color: #1B7C45; }
+
+.wiz-step-line {
+  flex: 1;
+  height: 1px;
+  background: #E4E7EC;
+  margin: 0 6px;
+}
+
+/* ── Body ─────────────────────────────────── */
+.wiz-body {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #E4E7EC transparent;
+}
+.wiz-body::-webkit-scrollbar { width: 4px; }
+.wiz-body::-webkit-scrollbar-thumb { background: #E4E7EC; border-radius: 2px; }
+
+/* ── Upload step ──────────────────────────── */
+.wiz-upload {
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wiz-drop {
+  border: 2px dashed #E4E7EC;
+  border-radius: 12px;
+  padding: 36px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  background: #F7F8FA;
+  min-height: 200px;
+  justify-content: center;
+}
+
+.wiz-drop:hover,
+.wiz-drop--active {
+  border-color: #1B7C45;
+  background: #EBF5EE;
+}
+
+.wiz-drop--parsing {
+  pointer-events: none;
+  border-color: #1D4ED8;
+  background: #EFF6FF;
+}
+
+.wiz-drop-icon {
+  color: #C5CAD3;
+  transition: color 0.15s;
+}
+.wiz-drop:hover .wiz-drop-icon,
+.wiz-drop--active .wiz-drop-icon { color: #1B7C45; }
+
+.wiz-drop-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #5F6878;
+}
+
+.wiz-drop-sub {
+  font-size: 12px;
+  color: #9BA3AF;
+}
+
+.wiz-drop-btn {
+  padding: 8px 20px;
+  border-radius: 8px;
+  background: #EBF5EE;
+  border: 1px solid rgba(27, 124, 69, 0.3);
+  color: #1B7C45;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.wiz-drop-btn:hover { background: rgba(27, 124, 69, 0.15); }
+
+.wiz-drop-formats {
+  font-size: 11px;
+  color: #9BA3AF;
+  letter-spacing: 0.03em;
+}
+
+.wiz-error {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #FEF2F2;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  color: #DC2626;
+  font-size: 13px;
+}
+
+/* ── Preview step ─────────────────────────── */
+.wiz-preview {
+  display: flex;
+  flex-direction: column;
+}
+
+.wiz-preview-map {
+  height: 240px;
+  width: 100%;
+  background: #F7F8FA;
+}
+
+.wiz-stats {
+  display: flex;
+  gap: 0;
+  border-top: 1px solid #E8EAED;
+  border-bottom: 1px solid #E8EAED;
+}
+
+.wiz-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 12px;
+  border-right: 1px solid #E8EAED;
+}
+.wiz-stat:last-child { border-right: none; }
+
+.wiz-stat-val {
+  font-size: 22px;
+  font-weight: 800;
+  color: #1B7C45;
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+
+.wiz-stat-lbl {
+  font-size: 11px;
+  color: #9BA3AF;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.wiz-stat--file {
+  flex: 2;
+  align-items: flex-start;
+  padding-left: 16px;
+}
+
+.wiz-stat-file-name {
+  font-size: 12px;
+  color: #5F6878;
+  word-break: break-all;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.wiz-preview-actions {
+  display: flex;
+  gap: 10px;
+  padding: 14px 20px;
+}
+
+/* ── Success step ─────────────────────────── */
+.wiz-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  gap: 12px;
+  min-height: 220px;
+}
+
+.wiz-success-icon  { font-size: 44px; }
+.wiz-success-title { font-size: 20px; font-weight: 800; color: #1B7C45; }
+.wiz-success-sub   { font-size: 13px; color: #5F6878; text-align: center; line-height: 1.6; }
+
+/* ── Buttons ──────────────────────────────── */
+.wiz-btn {
+  flex: 1;
+  padding: 10px 0;
+  border-radius: 9px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  font-family: inherit;
+  border: 1px solid transparent;
+}
+
+.wiz-btn--primary {
+  background: #1B7C45;
+  color: #FFFFFF;
+  border-color: #1B7C45;
+}
+.wiz-btn--primary:hover { background: #22A35A; border-color: #22A35A; }
+
+.wiz-btn--ghost {
+  background: transparent;
+  color: #5F6878;
+  border-color: #E4E7EC;
+}
+.wiz-btn--ghost:hover { background: #F3F4F6; color: #1A1D23; border-color: #9BA3AF; }
+
+/* ── Spinner ──────────────────────────────── */
+.wiz-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #E4E7EC;
+  border-top-color: #1B7C45;
+  border-radius: 50%;
+  animation: wiz-spin 0.7s linear infinite;
+}
+
+.wiz-spinner--large {
+  width: 32px;
+  height: 32px;
+  border-width: 3px;
+  margin-top: 8px;
+}
+
+@keyframes wiz-spin { to { transform: rotate(360deg); } }

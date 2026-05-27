@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Secret keys — never commit!
+private-key.json
+gee-service-account.json
+.env
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

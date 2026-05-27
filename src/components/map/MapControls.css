@@ -1,0 +1,110 @@
+/* ── Root ─────────────────────────────────── */
+.mc-root {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: right 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ── Group ────────────────────────────────── */
+.mc-group {
+  position: relative;
+  background: rgba(255,255,255,0.97);
+  border: 1px solid #E4E7EC;
+  border-radius: 10px;
+  overflow: visible;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Button ───────────────────────────────── */
+.mc-btn {
+  width: 36px;
+  height: 36px;
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #5F6878;
+  font-size: 15px;
+  transition: color 0.15s, background 0.15s;
+  border-radius: 9px;
+}
+.mc-btn:hover { background: #F3F4F6; color: #111827; }
+.mc-btn--active { background: #EBF5EE; color: #2D5F3F; }
+
+.mc-divider { height: 1px; background: #F0F0F0; flex-shrink: 0; }
+
+/* ── Popover ──────────────────────────────── */
+.mc-popover-wrap { overflow: visible; }
+
+.mc-popover {
+  position: absolute;
+  top: 0;
+  background: #fff;
+  border: 1px solid #E4E7EC;
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.12);
+  min-width: 150px;
+  overflow: hidden;
+  z-index: 10;
+}
+.mc-popover--left { right: calc(100% + 10px); }
+
+.mc-pop-title {
+  padding: 9px 12px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #9BA3AF;
+  text-transform: uppercase;
+  border-bottom: 1px solid #F0F0F0;
+}
+
+.mc-pop-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  background: none;
+  border: none;
+  font-size: 13px;
+  font-family: inherit;
+  color: #374151;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, color 0.12s;
+  border-bottom: 1px solid #F5F5F5;
+}
+.mc-pop-item:last-child { border-bottom: none; }
+.mc-pop-item:hover { background: #F8FAFC; }
+.mc-pop-item--active { background: #EBF5EE; color: #2D5F3F; font-weight: 600; }
+.mc-pop-item--on { color: #2D5F3F; }
+.mc-pop-item i { font-size: 14px; color: #6B7280; flex-shrink: 0; }
+.mc-pop-item--active i, .mc-pop-item--on i { color: #2D5F3F; }
+
+.mc-check { margin-left: auto; font-size: 13px; color: #2D5F3F; }
+
+/* ── Toggle pill ──────────────────────────── */
+.mc-toggle-pill {
+  margin-left: auto;
+  padding: 2px 7px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  background: #F3F4F6;
+  color: #9BA3AF;
+  flex-shrink: 0;
+}
+.mc-toggle-pill--on {
+  background: #2D5F3F;
+  color: #fff;
+}

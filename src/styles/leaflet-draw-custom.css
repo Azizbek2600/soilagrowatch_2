@@ -1,0 +1,127 @@
+/* ══════════════════════════════════════════════════════
+   Leaflet Draw — Custom styling
+   Vertices: white circles / yellow border
+   Lines: yellow
+   Active vertex: blue + pulse
+   ══════════════════════════════════════════════════════ */
+
+/* ── Cursor while drawing ────────────────── */
+.leaflet-container.mp-draw-active {
+  cursor: crosshair !important;
+}
+.leaflet-container.mp-draw-active * {
+  cursor: crosshair !important;
+}
+
+/* DrawControl cursor class (set on container) */
+.mp-draw-cursor,
+.mp-draw-cursor * {
+  cursor: crosshair !important;
+}
+
+/* ── New DrawControl vertex icons (.mpv) ─── */
+.mpv {
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border: 2.5px solid #F59E0B;
+  border-radius: 50%;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.28), 0 0 0 1px rgba(245,158,11,0.12);
+}
+
+.mpv--first {
+  border-color: #10B981;
+  animation: mp-pulse-green 1.6s ease-in-out infinite;
+}
+
+/* ── Vertex icons (placed points) ────────── */
+.mp-draw-vertex {
+  background: transparent !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.mp-draw-vertex-dot {
+  width: 12px;
+  height: 12px;
+  background: #ffffff;
+  border: 2.5px solid #F59E0B;
+  border-radius: 50%;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.28), 0 0 0 1px rgba(245,158,11,0.15);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  pointer-events: auto;
+}
+
+/* First vertex — green pulse (shows where to click to close) */
+.mp-draw-vertex--first .mp-draw-vertex-dot {
+  width: 14px;
+  height: 14px;
+  background: #ffffff;
+  border-color: #10B981;
+  animation: mp-pulse-green 1.6s ease-in-out infinite;
+}
+
+/* Hover on any vertex */
+.mp-draw-vertex-dot:hover {
+  transform: scale(1.35);
+  box-shadow: 0 0 0 5px rgba(245,158,11,0.22), 0 2px 8px rgba(0,0,0,0.25);
+}
+
+/* ── Mouse-position marker ───────────────── */
+.leaflet-mouse-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* ── Draw toolbar ────────────────────────── */
+.leaflet-draw-toolbar a {
+  background-color: #ffffff !important;
+  color: #374151 !important;
+  border-radius: 6px !important;
+  transition: background 0.15s !important;
+}
+.leaflet-draw-toolbar a:hover {
+  background-color: #EBF5EE !important;
+  color: #2D5F3F !important;
+}
+.leaflet-draw-toolbar .leaflet-draw-draw-polygon {
+  background-image: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.leaflet-draw-actions a {
+  background-color: #2D5F3F !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+}
+.leaflet-draw-actions a:hover {
+  background-color: #1B4D2F !important;
+}
+
+/* ── Guide line (dashed line to cursor) ─── */
+.leaflet-overlay-pane svg path.leaflet-interactive[stroke-dasharray] {
+  stroke: #F59E0B !important;
+  stroke-width: 2px !important;
+  opacity: 0.8 !important;
+}
+
+/* ── Drawn polygon (while drawing) ──────── */
+.leaflet-overlay-pane svg path.leaflet-interactive {
+  stroke: #F59E0B !important;
+}
+
+/* ── Animations ──────────────────────────── */
+@keyframes mp-pulse-green {
+  0%   { box-shadow: 0 0 0 0   rgba(16,185,129,0.6), 0 1px 6px rgba(0,0,0,0.25); }
+  50%  { box-shadow: 0 0 0 7px rgba(16,185,129,0),   0 1px 6px rgba(0,0,0,0.25); }
+  100% { box-shadow: 0 0 0 0   rgba(16,185,129,0.6), 0 1px 6px rgba(0,0,0,0.25); }
+}
+
+@keyframes mp-pulse-blue {
+  0%   { box-shadow: 0 0 0 0   rgba(59,130,246,0.6), 0 1px 6px rgba(0,0,0,0.25); }
+  50%  { box-shadow: 0 0 0 7px rgba(59,130,246,0),   0 1px 6px rgba(0,0,0,0.25); }
+  100% { box-shadow: 0 0 0 0   rgba(59,130,246,0.6), 0 1px 6px rgba(0,0,0,0.25); }
+}

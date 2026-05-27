@@ -1,8 +1,13 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
+import Chart from 'chart.js/auto'
 import { MapContainer, TileLayer, GeoJSON, Marker, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import './App.css'
+import DrawMap from './components/DrawMap'
+import Sidebar from './components/Sidebar'
+import FieldUploadWizard from './components/FieldUploadWizard'
+import MapPage from './pages/MapPage'
 
 import ndviData   from './data/ndvi.json'
 import ndwiData   from './data/ndwi.json'
@@ -179,11 +184,16 @@ function GeoJSONLayer({ layer, opacity, onEachFeature, onReady }) {
 }
 
 function makeStyle(palette, opacity = 0.8) {
-  return feature => ({
-    fillColor: palette[feature.properties[PROPERTY_KEY]] ?? '#999999',
-    fillOpacity: opacity,
-    stroke: false,
-  })
+  return feature => {
+    const col = palette[feature.properties[PROPERTY_KEY]] ?? '#999999'
+    return {
+      fillColor:   col,
+      fillOpacity: opacity,
+      color:       col,
+      weight:      1,
+      opacity:     opacity,
+    }
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -268,113 +278,236 @@ function Legend({ layer }) {
 }
 
 // ─────────────────────────────────────────────
-// OB-HAVO KONTENT (faqat ma'lumot, wrapper yo'q)
+// OB-HAVO KARTASI
 // ─────────────────────────────────────────────
-function WeatherContent() {
-  const [data,        setData]        = useState(null)
-  const [loading,     setLoading]     = useState(true)
-  const [lastUpdated, setLastUpdated] = useState('')
+function WeatherCard() {
+  const [weatherData,  setWeatherData]  = useState(null)
+  const [loading,      setLoading]      = useState(true)
+  const chartRef      = useRef(null)
+  const chartInstance = useRef(null)
 
   useEffect(() => { loadWeather() }, [])
 
+  useEffect(() => {
+    if (!weatherData?.daily?.length || !chartRef.current) return
+    if (chartInstance.current) { chartInstance.current.destroy(); chartInstance.current = null }
+    const ctx  = chartRef.current.getContext('2d')
+    const days = weatherData.daily
+    chartInstance.current = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: days.map(d => fmtDayName(d.date)),
+        datasets: [
+          {
+            label: 'Harorat (°C)',
+            data: days.map(d => d.temp != null ? +d.temp.toFixed(1) : null),
+            borderColor: '#EF9F27', pointBackgroundColor: '#EF9F27',
+            borderWidth: 2, tension: 0.3, yAxisID: 'y', fill: false,
+            pointRadius: 3, pointHoverRadius: 5,
+          },
+          {
+            label: "Yog'in (mm)",
+            data: days.map(d => +(d.rain ?? 0).toFixed(1)),
+            borderColor: '#378ADD', pointBackgroundColor: '#378ADD',
+            borderWidth: 2, tension: 0.3, yAxisID: 'y1', fill: false,
+            pointRadius: 3, pointHoverRadius: 5,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { mode: 'index', intersect: false },
+        },
+        interaction: { mode: 'index' },
+        scales: {
+          x: {
+            ticks: { font: { size: 10 }, color: '#9BA3AF' },
+            grid:  { color: 'rgba(0,0,0,0.05)' },
+          },
+          y: {
+            position: 'left',
+            ticks: { font: { size: 10 }, color: '#EF9F27' },
+            grid:  { color: 'rgba(0,0,0,0.05)' },
+          },
+          y1: {
+            position: 'right',
+            ticks: { font: { size: 10 }, color: '#378ADD' },
+            grid:  { drawOnChartArea: false },
+          },
+        },
+      },
+    })
+    return () => {
+      if (chartInstance.current) { chartInstance.current.destroy(); chartInstance.current = null }
+    }
+  }, [weatherData])
+
   async function loadWeather() {
     try {
+      const end   = new Date()
+      const start = new Date(end)
+      start.setDate(start.getDate() - 7)
+      const fmt = d => d.toISOString().slice(0,10).replace(/-/g,'')
       const res = await fetch(
         'https://power.larc.nasa.gov/api/temporal/daily/point' +
-        '?parameters=T2M,PRECTOTCORR&community=AG' +
-        '&longitude=59.12&latitude=42.74&start=20250425&end=20250502&format=JSON'
+        '?parameters=T2M,PRECTOTCORR,WS2M,WD2M&community=AG' +
+        `&longitude=59.12&latitude=42.74&start=${fmt(start)}&end=${fmt(end)}&format=JSON`
       )
-      if (!res.ok) throw new Error('API javob xatosi: ' + res.status)
-      const json = await res.json()
-      setData(processNasaData(json))
-      setLastUpdated(new Date().toLocaleString('uz-UZ'))
-    } catch (e) {
-      console.log('NASA POWER API xatosi:', e)
-      setData(getMockData())
-      setLastUpdated(new Date().toLocaleString('uz-UZ') + ' (demo)')
+      if (!res.ok) throw new Error()
+      const json   = await res.json()
+      const params = json?.properties?.parameter ?? {}
+      const t2m    = params.T2M         ?? {}
+      const prec   = params.PRECTOTCORR ?? {}
+      const ws2m   = params.WS2M        ?? {}
+      const wd2m   = params.WD2M        ?? {}
+      const dates  = Object.keys(t2m).filter(k => k !== 'FILL_VALUE').sort()
+      const daily  = dates.map(date => ({
+        date,
+        temp:    t2m[date]  > -900 ? t2m[date]  : null,
+        rain:    prec[date] >= 0   ? prec[date]  : 0,
+        wind:    ws2m[date] > -900 ? ws2m[date]  : null,
+        windDir: wd2m[date] >= 0   ? wd2m[date]  : null,
+      })).filter(d => d.temp !== null).slice(-7)
+      setWeatherData({ daily })
+    } catch {
+      setWeatherData({ daily: mockDaily() })
     }
     setLoading(false)
   }
 
-  function processNasaData(json) {
-    const t2m  = json?.properties?.parameter?.T2M         ?? {}
-    const prec = json?.properties?.parameter?.PRECTOTCORR ?? {}
-    const days = Object.keys(t2m).filter(k => k !== 'FILL_VALUE').sort()
-      .map(date => ({ date, temp: typeof t2m[date]==='number'?t2m[date]:null, rain: typeof prec[date]==='number'?prec[date]:null }))
-      .filter(d => d.temp !== null && d.temp > -900)
-    return buildAlerts(days)
-  }
-
-  function getMockData() {
-    const days = [
-      { date:'20250425', temp:18.3, rain:0.1 },
-      { date:'20250426', temp:20.1, rain:0.0 },
-      { date:'20250427', temp:22.4, rain:0.0 },
-      { date:'20250428', temp:19.8, rain:0.0 },
-      { date:'20250429', temp:16.5, rain:0.0 },
-      { date:'20250430', temp:14.2, rain:0.0 },
-      { date:'20250501', temp:17.9, rain:1.8 },
-      { date:'20250502', temp:21.1, rain:0.1 },
+  function mockDaily() {
+    return [
+      { date:'20250426', temp:20.1, rain:0.0, wind:3.2, windDir:180 },
+      { date:'20250427', temp:22.4, rain:0.0, wind:2.8, windDir:200 },
+      { date:'20250428', temp:19.8, rain:0.0, wind:4.1, windDir:160 },
+      { date:'20250429', temp:16.5, rain:0.4, wind:3.5, windDir:220 },
+      { date:'20250430', temp:14.2, rain:0.0, wind:5.2, windDir:270 },
+      { date:'20250501', temp:17.9, rain:1.8, wind:2.1, windDir:140 },
+      { date:'20250502', temp:21.1, rain:0.1, wind:3.8, windDir:190 },
     ]
-    return buildAlerts(days)
   }
 
-  function buildAlerts(days) {
-    const frostRisk = days.some(d => d.temp !== null && d.temp < 5)
-    let droughtRisk = false, streak = 0
-    for (const d of days) {
-      if (d.rain !== null) {
-        streak = d.rain < 1 ? streak + 1 : 0
-        if (streak >= 5) { droughtRisk = true; break }
-      }
-    }
-    return { days, frostRisk, droughtRisk }
+  function fmtDayName(s) {
+    const dow = ['Yak','Dsh','Sesh','Chsh','Psh','Jm','Sh']
+    const d = new Date(+s.slice(0,4), +s.slice(4,6)-1, +s.slice(6,8))
+    return dow[d.getDay()]
   }
 
-  function fmtDate(s) {
-    const months = ['Yan','Fev','Mar','Apr','May','Iyn','Iyl','Avg','Sen','Okt','Nov','Dek']
-    return `${s.slice(6)}-${months[parseInt(s.slice(4,6))-1]}`
-  }
-
-  const alertType = data?.frostRisk ? 'frost' : data?.droughtRisk ? 'drought' : 'normal'
-  const alertMsg  = {
-    frost:   '⚠️ AYOZ XAVFI: Ekinlarni himoya qiling!',
-    drought: "⚠️ QURG'OQCHILIK XAVFI",
-    normal:  '✅ Ob-havo normal',
+  function windDirLabel(deg) {
+    if (deg == null || deg < 0) return '—'
+    const dirs = ['Shimol','Sh-Sharq','Sharq','J-Sharq','Janub','J-G\'arb','G\'arb','Sh-G\'arb']
+    return dirs[Math.round(deg / 45) % 8]
   }
 
   if (loading) {
     return (
-      <div className="wp-loading">
-        <div className="map-loader-spinner" style={{ width:22, height:22, borderWidth:2 }}/>
-        <span>NASA POWER yuklanmoqda...</span>
+      <div className="wc-card">
+        <div className="wc-loading">
+          <div className="map-loader-spinner" style={{ width:20, height:20, borderWidth:2 }}/>
+          <span>Ob-havo ma'lumoti yuklanmoqda...</span>
+        </div>
       </div>
     )
   }
 
+  const days       = weatherData?.daily ?? []
+  const today      = days[days.length - 1]
+  const totalRain7 = days.reduce((s, d) => s + (d.rain ?? 0), 0)
+  const avgTemp    = days.length ? days.reduce((s,d) => s+(d.temp??0),0)/days.length : null
+  const alertLevel = totalRain7 < 5 ? 'danger' : totalRain7 <= 15 ? 'warn' : 'good'
+  const alertText  = {
+    danger: `Qurg'oqchilik xavfi — 7 kunda ${totalRain7.toFixed(1)} mm yog'in. Harorat ko'tarilmoqda.`,
+    warn:   "Yog'in me'yorda — dalani kuzating",
+    good:   "Yog'in yetarli — sug'orish shart emas",
+  }[alertLevel]
+  const alertIcon  = { danger: 'ti-alert-triangle', warn: 'ti-alert-circle', good: 'ti-circle-check' }[alertLevel]
+  const rainValCls = totalRain7 < 5 ? 'wc-val--red' : totalRain7 <= 15 ? 'wc-val--yellow' : 'wc-val--blue'
+
   return (
-    <>
-      {data && <div className={`wp-alert wp-alert--${alertType}`}>{alertMsg[alertType]}</div>}
-      {data?.days?.length > 0 && (
-        <div className="wp-table-wrapper">
-          <table className="wp-table">
-            <thead>
-              <tr><th>Sana</th><th>Harorat (°C)</th><th>Yog'in (mm)</th></tr>
-            </thead>
-            <tbody>
-              {data.days.map(d => (
-                <tr key={d.date} className={d.temp < 5 ? 'wp-row--cold' : ''}>
-                  <td>{fmtDate(d.date)}</td>
-                  <td className={d.temp < 5 ? 'wp-cold' : d.temp > 35 ? 'wp-hot' : ''}>{d.temp?.toFixed(1)}°</td>
-                  <td className={d.rain !== null && d.rain < 1 ? 'wp-dry' : 'wp-wet'}>{d.rain?.toFixed(1) ?? '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    <div className="wc-card">
+
+      {/* ── Header ── */}
+      <div className="wc-header">
+        <div className="wc-header-left">
+          <div className="wc-icon"><i className="ti ti-cloud"/></div>
+          <span className="wc-title">Ob-havo prognozi</span>
         </div>
-      )}
-      <div className="wp-footer">So'nggi yangilanish: {lastUpdated}</div>
-    </>
+        <span className="wc-nasa-badge">NASA POWER</span>
+      </div>
+
+      {/* ── Alert ── */}
+      <div className={`wc-alert wc-alert--${alertLevel}`}>
+        <i className={`ti ${alertIcon}`}/>
+        {alertText}
+      </div>
+
+      {/* ── 3 Metrics ── */}
+      <div className="wc-metrics">
+        <div className="wc-metric">
+          <div className="wc-metric-label">Bugungi harorat</div>
+          <div className="wc-metric-val">
+            {today?.temp != null ? `${today.temp.toFixed(1)}°C` : '—'}
+          </div>
+          <div className="wc-metric-sub">
+            O'rtacha: {avgTemp != null ? `${avgTemp.toFixed(1)}°C` : '—'}
+          </div>
+        </div>
+        <div className="wc-metric wc-metric--mid">
+          <div className="wc-metric-label">Yog'in (7 kun)</div>
+          <div className={`wc-metric-val ${rainValCls}`}>{totalRain7.toFixed(1)} mm</div>
+          <div className="wc-metric-sub">Norma: 12–15 mm</div>
+        </div>
+        <div className="wc-metric">
+          <div className="wc-metric-label">Shamol tezligi</div>
+          <div className="wc-metric-val">
+            {today?.wind != null ? `${today.wind.toFixed(1)} m/s` : '—'}
+          </div>
+          <div className="wc-metric-sub">{windDirLabel(today?.windDir)}</div>
+        </div>
+      </div>
+
+      {/* ── 7-day forecast ── */}
+      <div className="wc-forecast">
+        {days.map((d, i) => {
+          const isToday = i === days.length - 1
+          const icon = d.rain > 1
+            ? { cls: 'ti-cloud-rain', color: '#378ADD' }
+            : d.rain > 0.1
+            ? { cls: 'ti-cloud',      color: '#9BA3AF' }
+            : { cls: 'ti-sun',        color: '#EF9F27' }
+          return (
+            <div key={d.date} className={`wc-day${isToday ? ' wc-day--today' : ''}`}>
+              <div className="wc-day-name">{isToday ? 'Bugun' : fmtDayName(d.date)}</div>
+              <i className={`ti ${icon.cls} wc-day-icon`} style={{ color: icon.color }}/>
+              <div className="wc-day-temp">{d.temp != null ? `${d.temp.toFixed(0)}°` : '—'}</div>
+              <div className={`wc-day-rain${d.rain > 0 ? ' wc-day-rain--wet' : ' wc-day-rain--dry'}`}>
+                {d.rain > 0 ? `${d.rain.toFixed(1)} mm` : '0 mm'}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* ── Chart ── */}
+      <div className="wc-chart-section">
+        <div className="wc-chart-header">
+          <span className="wc-chart-title">Harorat va yog'in — oxirgi 7 kun</span>
+          <div className="wc-chart-legend">
+            <span className="wc-legend-dot" style={{ background:'#EF9F27' }}/>
+            <span className="wc-legend-label">Harorat</span>
+            <span className="wc-legend-dot" style={{ background:'#378ADD' }}/>
+            <span className="wc-legend-label">Yog'in</span>
+          </div>
+        </div>
+        <div className="wc-chart-wrap">
+          <canvas ref={chartRef} id="weatherChart"/>
+        </div>
+      </div>
+
+    </div>
   )
 }
 
@@ -523,23 +656,616 @@ function OrderModal({ onClose }) {
 }
 
 // ─────────────────────────────────────────────
+// MONITORING CARDS — 3 expandable stat cards
+// ─────────────────────────────────────────────
+function MonitoringCards({ analysisData, polygonData, mounted }) {
+  const [open, setOpen] = useState(false)
+  const [wx,   setWx]   = useState(null)
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const end   = new Date()
+        const start = new Date(end)
+        start.setDate(start.getDate() - 7)
+        const fmt = d => d.toISOString().slice(0, 10).replace(/-/g, '')
+        const res = await fetch(
+          'https://power.larc.nasa.gov/api/temporal/daily/point' +
+          '?parameters=T2M,PRECTOTCORR&community=AG' +
+          `&longitude=59.12&latitude=42.74&start=${fmt(start)}&end=${fmt(end)}&format=JSON`
+        )
+        if (!res.ok) throw new Error()
+        const json = await res.json()
+        const t2m  = json?.properties?.parameter?.T2M         ?? {}
+        const prec = json?.properties?.parameter?.PRECTOTCORR ?? {}
+        const days = Object.keys(t2m).filter(k => k !== 'FILL_VALUE').sort()
+          .map(date => ({ date, temp: t2m[date], rain: prec[date] }))
+          .filter(d => d.temp != null && d.temp > -900)
+        const totalRain7 = days.reduce((s, d) => s + (d.rain || 0), 0)
+        const lastTemp   = days.length ? days[days.length - 1].temp : null
+        const nextDays   = days.slice(-3)
+        setWx({ days, totalRain7, lastTemp, nextDays })
+      } catch {
+        setWx({ days: [], totalRain7: 0, lastTemp: null, nextDays: [] })
+      }
+    }
+    load()
+  }, [])
+
+  const toggle = () => setOpen(v => !v)
+
+  /* ── Karta 1: Monitoring maydoni ── */
+  const totalHa    = polygonData?.reduce((s, p) => s + p.ha, 0) ?? 0
+  const totalM2    = Math.round(totalHa * 10000)
+  const fieldCount = polygonData?.length ?? 0
+  const hasArea    = totalHa > 0
+  const isGee      = analysisData?.source === 'GEE'
+  const tahlilDate = analysisData?.period ?? '—'
+  const sourceLabel = isGee ? 'Sentinel-2 · GEE' : analysisData?.source === 'local' ? "Mahalliy ma'lumot" : '—'
+
+  /* ── Karta 2: Tuproq sho'rlanishi ── */
+  const siVal    = analysisData?.si?.avg ?? null
+  const hasSI    = siVal != null && !analysisData?.empty
+  const siStatus = !hasSI ? null
+    : isGee
+      ? siVal < 0.05 ? 'good' : siVal <= 0.2 ? 'mid' : 'bad'
+      : siVal <= 2   ? 'good' : siVal <= 3.5  ? 'mid' : 'bad'
+  const siLabel = !hasSI ? '—'
+    : siStatus === 'good' ? 'Yaxshi'
+    : siStatus === 'mid'  ? "O'rtacha"
+    : 'Yuqori'
+  const siBadge = !hasSI ? null
+    : siStatus === 'good' ? { text: 'Yaxshi',  cls: 'good' }
+    : siStatus === 'mid'  ? { text: 'Diqqat',  cls: 'mid'  }
+    : { text: 'Xavfli', cls: 'bad' }
+  const siBars = hasSI ? (() => {
+    const norm    = isGee ? Math.min(siVal / 0.3, 1) : Math.min((siVal - 1) / 4, 1)
+    const badPct  = Math.round(Math.max(0, 70 * norm * norm))
+    const goodPct = Math.round(Math.max(0, 90 - 85 * norm))
+    const midPct  = Math.max(0, 100 - goodPct - badPct)
+    return [
+      { label: "Sho'rlanmagan",    pct: goodPct, color: '#1B7C45' },
+      { label: "O'rtacha sho'r",   pct: midPct,  color: '#B45309' },
+      { label: "Kuchli sho'r",     pct: badPct,  color: '#DC2626' },
+    ]
+  })() : null
+  const badSIPct = siBars?.[2]?.pct ?? 0
+
+  /* ── Karta 3: Ob-havo ── */
+  const isDrought    = wx != null && wx.totalRain7 < 5
+  const isHeat       = wx != null && wx.lastTemp != null && wx.lastTemp > 30
+  const wxValueLabel = !wx ? '…'
+    : isDrought ? "Qurg'oqlik"
+    : (wx.totalRain7 > 20) ? "Yomg'irli"
+    : 'Normal'
+  const wxBadge = !wx ? null
+    : (isDrought || isHeat) ? { text: 'Xavf bor', cls: 'bad' }
+    : wx.totalRain7 > 20    ? { text: 'Yaxshi',   cls: 'good' }
+    : { text: 'Normal', cls: 'mid' }
+  const wxIcon = isDrought || isHeat ? 'ti-sun' : (wx?.totalRain7 ?? 0) > 5 ? 'ti-cloud-rain' : 'ti-sun'
+  const wxIconCls = (isDrought || isHeat) ? 'mc-icon-box--red' : (wx?.totalRain7 ?? 0) > 5 ? 'mc-icon-box--blue' : 'mc-icon-box--yellow'
+  const wxSubText = !wx ? ''
+    : isDrought ? `Oxirgi 7 kunda yog'in yo'q (${wx.totalRain7.toFixed(1)} mm)`
+    : `Yog'in: ${wx.totalRain7.toFixed(1)} mm`
+
+  function fmtDate(s) {
+    const m = ['Yan','Fev','Mar','Apr','May','Iyn','Iyl','Avg','Sen','Okt','Nov','Dek']
+    if (!s || s.length < 8) return s
+    return `${s.slice(6)}-${m[parseInt(s.slice(4,6))-1]}`
+  }
+
+  const Chevron = () => (
+    <i className="ti ti-chevron-down mc-chevron"
+      style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}/>
+  )
+
+  return (
+    <div className="mc-grid">
+
+      {/* ══════ KARTA 1 — MONITORING MAYDONI ══════ */}
+      <div className="mc-card">
+        <div className="mc-top">
+          <div className="mc-icon-box mc-icon-box--green">
+            <i className="ti ti-map-2"/>
+          </div>
+          <div className="mc-info">
+            <div className="mc-label-row">
+              <span className="mc-label">MONITORING MAYDONI</span>
+              {hasArea && <span className="mc-badge mc-badge--good">Faol</span>}
+            </div>
+            <div className={`mc-value ${hasArea ? 'mc-value--green' : 'mc-value--dim'}`}>
+              {hasArea ? `${totalHa.toFixed(2)} ga` : 'Tanlanmagan'}
+            </div>
+            <div className="mc-sub">
+              {hasArea ? `${totalM2.toLocaleString()} m²` : 'Polygon chizing'}
+            </div>
+          </div>
+          <button className="mc-toggle" onClick={toggle} aria-label="Batafsil">
+            <Chevron/>
+          </button>
+        </div>
+
+        <div className="mc-detail" style={{ maxHeight: open ? '260px' : '0' }}>
+          <div className="mc-divider"/>
+          <div className="mc-detail-inner">
+            {!hasArea ? (
+              <p className="mc-empty">Dala chizish rejimida polygon belgilang</p>
+            ) : (
+              <div className="mc-rows">
+                <div className="mc-row">
+                  <span className="mc-row-key">Dalalar soni</span>
+                  <span className="mc-row-val">{fieldCount} ta</span>
+                </div>
+                <div className="mc-row">
+                  <span className="mc-row-key">Tahlil sanasi</span>
+                  <span className="mc-row-val">{tahlilDate}</span>
+                </div>
+                <div className="mc-row">
+                  <span className="mc-row-key">Ma'lumot manbai</span>
+                  <span className="mc-row-val">{sourceLabel}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ══════ KARTA 2 — TUPROQ SHO'RLANISHI ══════ */}
+      <div className="mc-card">
+        <div className="mc-top">
+          <div className="mc-icon-box mc-icon-box--yellow">
+            <i className="ti ti-droplet-half-2"/>
+          </div>
+          <div className="mc-info">
+            <div className="mc-label-row">
+              <span className="mc-label">TUPROQ SHO'RLANISHI</span>
+              {siBadge && (
+                <span className={`mc-badge mc-badge--${siBadge.cls}`}>{siBadge.text}</span>
+              )}
+            </div>
+            <div className={`mc-value ${siStatus === 'good' ? 'mc-value--green' : siStatus === 'mid' ? 'mc-value--yellow' : siStatus === 'bad' ? 'mc-value--red' : 'mc-value--dim'}`}>
+              {siLabel}
+            </div>
+            <div className="mc-sub">
+              {hasSI ? `SI indeksi: ${isGee ? siVal.toFixed(4) : siVal.toFixed(2)}` : 'Tahlil kutilmoqda'}
+            </div>
+          </div>
+          <button className="mc-toggle" onClick={toggle} aria-label="Batafsil">
+            <Chevron/>
+          </button>
+        </div>
+
+        <div className="mc-detail" style={{ maxHeight: open ? '260px' : '0' }}>
+          <div className="mc-divider"/>
+          <div className="mc-detail-inner">
+            {!hasSI ? (
+              <p className="mc-empty">Polygon chizib GEE tahlilini bajaring</p>
+            ) : (
+              <>
+                {siBars.map(bar => (
+                  <div key={bar.label} className="mc-bar-item">
+                    <span className="mc-bar-label">{bar.label}</span>
+                    <div className="mc-bar-track">
+                      <div className="mc-bar-fill"
+                        style={{ width: mounted ? `${bar.pct}%` : '0%', background: bar.color }}/>
+                    </div>
+                    <span className="mc-bar-pct">{bar.pct}%</span>
+                  </div>
+                ))}
+                {badSIPct > 10 && (
+                  <div className="mc-alert-row mc-alert-row--yellow">
+                    <i className="ti ti-alert-triangle"/>
+                    {badSIPct}% maydon yuvish (промывка) talab qiladi
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ══════ KARTA 3 — OB-HAVO HOLATI ══════ */}
+      <div className="mc-card">
+        <div className="mc-top">
+          <div className={`mc-icon-box ${wxIconCls}`}>
+            <i className={`ti ${wxIcon}`}/>
+          </div>
+          <div className="mc-info">
+            <div className="mc-label-row">
+              <span className="mc-label">OB-HAVO HOLATI</span>
+              {wxBadge && (
+                <span className={`mc-badge mc-badge--${wxBadge.cls}`}>{wxBadge.text}</span>
+              )}
+            </div>
+            <div className={`mc-value ${(isDrought || isHeat) ? 'mc-value--red' : wx ? 'mc-value--green' : 'mc-value--dim'}`}>
+              {wxValueLabel}
+            </div>
+            <div className="mc-sub">{wxSubText || 'NASA POWER yuklanmoqda…'}</div>
+          </div>
+          <button className="mc-toggle" onClick={toggle} aria-label="Batafsil">
+            <Chevron/>
+          </button>
+        </div>
+
+        <div className="mc-detail" style={{ maxHeight: open ? '260px' : '0' }}>
+          <div className="mc-divider"/>
+          <div className="mc-detail-inner">
+            {!wx ? (
+              <p className="mc-empty">NASA POWER ma'lumotlari yuklanmoqda…</p>
+            ) : (
+              <>
+                <div className="mc-rows">
+                  <div className="mc-row">
+                    <span className="mc-row-key">Bugungi harorat</span>
+                    <span className="mc-row-val">
+                      {wx.lastTemp != null ? `${wx.lastTemp.toFixed(1)}°C` : '—'}
+                    </span>
+                  </div>
+                  <div className="mc-row">
+                    <span className="mc-row-key">7 kunlik yog'in</span>
+                    <span className="mc-row-val">{wx.totalRain7.toFixed(1)} mm</span>
+                  </div>
+                  {wx.nextDays.length > 0 && (
+                    <div className="mc-row">
+                      <span className="mc-row-key">Oxirgi 3 kun</span>
+                      <span className="mc-row-val">
+                        {wx.nextDays.map(d => `${fmtDate(d.date)} ${d.temp?.toFixed(0)}°`).join(' · ')}
+                      </span>
+                    </div>
+                  )}
+                  <div className="mc-row">
+                    <span className="mc-row-key">Manba</span>
+                    <span className="mc-row-val">NASA POWER</span>
+                  </div>
+                </div>
+                {(isHeat || isDrought) && (
+                  <div className="mc-alert-row mc-alert-row--red">
+                    <i className="ti ti-alert-triangle"/>
+                    Harorat ko'tarilmoqda — bug'lanish ortib ketishi mumkin
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────
+// SOIL INDICES TABLE
+// ─────────────────────────────────────────────
+const INDEX_META = [
+  {
+    key: 'ndvi', label: 'NDVI', desc: "O'simlik qoplami", geeOnly: false,
+    status:      (v, gee) => gee ? (v >= 0.4 ? 'good' : v >= 0.2 ? 'mid' : 'bad')
+                                 : (v >= 3.5 ? 'good' : v >= 2.5 ? 'mid' : 'bad'),
+    statusLabel: (v, gee) => gee ? (v >= 0.4 ? 'Yaxshi' : v >= 0.2 ? "O'rtacha" : 'Past')
+                                 : (v >= 3.5 ? 'Yaxshi' : v >= 2.5 ? "O'rtacha" : 'Past'),
+  },
+  {
+    key: 'ndwi', label: 'NDWI', desc: 'Namlik indeksi', geeOnly: false,
+    status:      (v, gee) => gee ? (v >= 0 ? 'good' : v >= -0.2 ? 'mid' : 'bad')
+                                 : (v >= 3.5 ? 'good' : v >= 2.5 ? 'mid' : 'bad'),
+    statusLabel: (v, gee) => gee ? (v >= 0 ? 'Namli' : v >= -0.2 ? "O'rtacha" : 'Quruq')
+                                 : (v >= 3.5 ? 'Namli' : v >= 2.5 ? "O'rtacha" : 'Quruq'),
+  },
+  {
+    key: 'si', label: 'SI', desc: "Sho'rlanish indeksi", geeOnly: false,
+    status:      (v, gee) => gee ? (v < 0.05 ? 'good' : v <= 0.2 ? 'mid' : 'bad')
+                                 : (v <= 2 ? 'good' : v <= 3 ? 'mid' : 'bad'),
+    statusLabel: (v, gee) => gee ? (v < 0.05 ? "Sho'rsiz" : v <= 0.2 ? "O'rtacha" : "Sho'rlangan")
+                                 : (v <= 2 ? "Sho'rsiz" : v <= 3 ? "O'rtacha" : "Sho'rlangan"),
+  },
+  {
+    key: 'bsi', label: 'BSI', desc: 'Yalangoch tuproq', geeOnly: false,
+    status:      (v, gee) => gee ? (v <= 0 ? 'good' : v <= 0.1 ? 'mid' : 'bad')
+                                 : (v <= 2 ? 'good' : v <= 3 ? 'mid' : 'bad'),
+    statusLabel: (v, gee) => gee ? (v <= 0 ? 'Qoplangan' : v <= 0.1 ? "O'rtacha" : 'Yalangoch')
+                                 : (v <= 2 ? 'Qoplangan' : v <= 3 ? "O'rtacha" : 'Yalangoch'),
+  },
+  {
+    key: 'ndre', label: 'NDRE', desc: "O'simlik sog'lig'i", geeOnly: true,
+    status:      (v) => v >= 0.3 ? 'good' : v >= 0.15 ? 'mid' : 'bad',
+    statusLabel: (v) => v >= 0.3 ? "Sog'lom" : v >= 0.15 ? "O'rtacha" : 'Zaif',
+  },
+  {
+    key: 'msavi', label: 'MSAVI', desc: "Tuproq ta'siri", geeOnly: true,
+    status:      (v) => v >= 0.3 ? 'good' : v >= 0.15 ? 'mid' : 'bad',
+    statusLabel: (v) => v >= 0.3 ? 'Yaxshi' : v >= 0.15 ? "O'rtacha" : 'Past',
+  },
+  {
+    key: 'smi', label: 'SMI', desc: 'Tuproq namligi', geeOnly: true,
+    status:      (v) => v >= 0.4 ? 'good' : v >= 0.2 ? 'mid' : 'bad',
+    statusLabel: (v) => v >= 0.4 ? 'Namli' : v >= 0.2 ? "O'rtacha" : 'Quruq',
+  },
+]
+
+function SoilIndicesTable({ analysisData }) {
+  const wrapRef = useRef(null)
+  const [vThumb, setVThumb] = useState({ top: 0, height: 0, visible: false })
+
+  function updateThumbs() {
+    const el = wrapRef.current
+    if (!el) return
+    const { scrollTop, scrollHeight, clientHeight } = el
+    if (scrollHeight > clientHeight + 2) {
+      const thumbH = Math.max(24, (clientHeight / scrollHeight) * clientHeight)
+      const maxScr = scrollHeight - clientHeight
+      const thumbT = maxScr > 0 ? (scrollTop / maxScr) * (clientHeight - thumbH) : 0
+      setVThumb({ top: thumbT, height: thumbH, visible: true })
+    } else {
+      setVThumb(v => ({ ...v, visible: false }))
+    }
+  }
+
+  useEffect(() => {
+    updateThumbs()
+    const el = wrapRef.current
+    if (!el) return
+    const ro = new ResizeObserver(updateThumbs)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [analysisData])
+
+  const isGee = analysisData?.source === 'GEE'
+  const year  = analysisData?.year ?? '—'
+  const rows  = INDEX_META.filter(m => !m.geeOnly || isGee)
+
+  return (
+    <div className="sit-card">
+      <div className="sit-header">
+        <div className="sit-header-left">
+          <div className="sit-icon-box"><i className="ti ti-leaf"/></div>
+          <div>
+            <div className="sit-title">Tuproq indekslari</div>
+            <div className="sit-subtitle">Sentinel-2 · {year}</div>
+          </div>
+        </div>
+        {isGee && <span className="sit-gee-badge">GEE</span>}
+      </div>
+
+      <div className="sit-scroll-outer">
+        <div className="sit-scroll" ref={wrapRef} onScroll={updateThumbs}>
+          <table className="sit-table">
+            <thead>
+              <tr>
+                <th>Indeks</th>
+                <th>Nima o'lchaydi</th>
+                <th>Qiymat</th>
+                <th>Holati</th>
+                <th>Trend</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(m => {
+                const entry = analysisData && !analysisData.empty ? analysisData[m.key] : null
+                const val   = entry?.avg ?? null
+                const st    = val != null ? m.status(val, isGee) : null
+                const stLbl = val != null ? m.statusLabel(val, isGee) : null
+                return (
+                  <tr key={m.key}>
+                    <td className="sit-td-key">
+                      <span className="sit-idx-label">{m.label}</span>
+                      {m.geeOnly && <span className="sit-gee-mini">GEE</span>}
+                    </td>
+                    <td className="sit-td-desc">{m.desc}</td>
+                    <td className="sit-td-val">{val != null ? val.toFixed(4) : '—'}</td>
+                    <td className="sit-td-status">
+                      {st
+                        ? <span className={`sit-badge sit-badge--${st}`}>{stLbl}</span>
+                        : <span className="sit-dim">—</span>}
+                    </td>
+                    <td className="sit-td-trend"><span className="sit-dim">—</span></td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+        {vThumb.visible && (
+          <div className="sit-vscroll">
+            <div className="sit-vthumb" style={{ top: vThumb.top, height: vThumb.height }}/>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────
+// LABORATORIYA TAHLILI KARTASI
+// ─────────────────────────────────────────────
+const LAB_DATA = {
+  date: '02-May 2024',
+  ph: 7.2, ec: 4.8, sar: 12.3,
+  nitrogen: 18, phosphorus: 28, potassium: 190, humus: 1.2,
+}
+
+const SOIL_ROWS = [
+  { key: 'ph',  name: 'pH',  desc: 'Tuproq kislotaligi',         norm: '6.5 – 7.5',    unit: ''     },
+  { key: 'ec',  name: 'EC',  desc: "Elektr o'tkazuvchanlik",     norm: '< 2.0 dS/m',   unit: 'dS/m' },
+  { key: 'sar', name: 'SAR', desc: 'Natriy absorbsiya nisbati',  norm: '< 9.0',         unit: ''     },
+]
+
+const NUTR_ROWS = [
+  { key: 'nitrogen',   name: 'Azot (N)',   desc: 'Asosiy oziqa element',  norm: '40–60 mg/kg',   unit: 'mg/kg' },
+  { key: 'phosphorus', name: 'Fosfor (P)', desc: 'Ildiz va gul rivojida', norm: '20–40 mg/kg',   unit: 'mg/kg' },
+  { key: 'potassium',  name: 'Kaliy (K)',  desc: 'Hosil sifati',          norm: '200–400 mg/kg', unit: 'mg/kg' },
+  { key: 'humus',      name: 'Gumus',      desc: 'Organik modda miqdori', norm: '> 2.0 %',       unit: '%'     },
+]
+
+function labStatus(key, val) {
+  if (val == null) return null
+  switch (key) {
+    case 'ph':
+      if (val >= 6.5 && val <= 7.5) return { label: 'Normal',    cls: 'good' }
+      if (val < 6.0  || val > 8.0)  return { label: 'Xavfli',    cls: 'bad'  }
+      return                               { label: "O'rtacha",   cls: 'mid'  }
+    case 'ec':
+      if (val < 2.0)  return { label: 'Normal', cls: 'good' }
+      if (val <= 4.0) return { label: 'Yuqori', cls: 'mid'  }
+      return                 { label: 'Xavfli', cls: 'bad'  }
+    case 'sar':
+      if (val < 9.0)   return { label: 'Normal', cls: 'good' }
+      if (val <= 18.0) return { label: 'Yuqori', cls: 'mid'  }
+      return                  { label: 'Xavfli', cls: 'bad'  }
+    case 'nitrogen':
+      if (val > 40)  return { label: 'Normal',    cls: 'good' }
+      if (val >= 20) return { label: 'Past',       cls: 'mid'  }
+      return               { label: 'Juda past',  cls: 'bad'  }
+    case 'phosphorus':
+      if (val > 20)  return { label: 'Normal',    cls: 'good' }
+      if (val >= 10) return { label: 'Past',       cls: 'mid'  }
+      return               { label: 'Juda past',  cls: 'bad'  }
+    case 'potassium':
+      if (val > 200)  return { label: 'Normal',   cls: 'good' }
+      if (val >= 100) return { label: "O'rtacha", cls: 'mid'  }
+      return                { label: 'Past',       cls: 'bad'  }
+    case 'humus':
+      if (val > 2.0)  return { label: 'Normal',    cls: 'good' }
+      if (val >= 1.0) return { label: 'Past',       cls: 'mid'  }
+      return                { label: 'Juda past',  cls: 'bad'  }
+    default: return null
+  }
+}
+
+function labBarPct(key, val) {
+  if (val == null) return 0
+  const map = { ph: [5.5, 3.5], ec: [0, 6], sar: [0, 25], nitrogen: [0, 80], phosphorus: [0, 50], potassium: [0, 500], humus: [0, 4] }
+  const [base, range] = map[key] ?? [0, 100]
+  return Math.min(100, Math.max(0, ((val - base) / range) * 100))
+}
+
+const LB_BAR_COLOR = { good: '#1B7C45', mid: '#EF9F27', bad: '#E24B4A' }
+
+function LabCard({ onGoToLab }) {
+  const [panel, setPanel] = useState('soil')
+  const labData = LAB_DATA
+
+  const allRows    = [...SOIL_ROWS, ...NUTR_ROWS]
+  const dangerRows = allRows.filter(r => labStatus(r.key, labData?.[r.key])?.cls === 'bad')
+  const alertLevel = dangerRows.length > 0 ? 'danger' : 'good'
+
+  const rows = panel === 'soil' ? SOIL_ROWS : NUTR_ROWS
+
+  if (!labData) {
+    return (
+      <div className="lb-card">
+        <div className="lb-header">
+          <div className="lb-header-left">
+            <div className="lb-icon"><i className="ti ti-flask"/></div>
+            <span className="lb-title">Laboratoriya tahlili</span>
+          </div>
+        </div>
+        <div className="lb-empty">
+          <i className="ti ti-flask-off lb-empty-icon"/>
+          <p className="lb-empty-text">Laboratoriya tahlili natijasi yuklanmagan</p>
+          <button className="lb-empty-btn" onClick={onGoToLab}>
+            <i className="ti ti-upload"/> Natija yuklash
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="lb-card">
+
+      {/* ── Sarlavha ── */}
+      <div className="lb-header">
+        <div className="lb-header-left">
+          <div className="lb-icon"><i className="ti ti-flask"/></div>
+          <span className="lb-title">Laboratoriya tahlili</span>
+        </div>
+        <span className="lb-date">Tahlil sanasi: {labData.date}</span>
+      </div>
+
+      {/* ── Boshqaruv ── */}
+      <div className="lb-controls">
+        <div className="lb-toggle-group">
+          <button
+            className={`lb-toggle${panel === 'soil' ? ' lb-toggle--active' : ''}`}
+            onClick={() => setPanel('soil')}
+          >Tuproq muhiti</button>
+          <button
+            className={`lb-toggle${panel === 'nutrients' ? ' lb-toggle--active' : ''}`}
+            onClick={() => setPanel('nutrients')}
+          >Oziqa moddalari</button>
+        </div>
+        <button className="lb-pdf-btn" onClick={() => alert('PDF hisobot tayyorlanmoqda...')}>
+          <i className="ti ti-file-download"/> PDF
+        </button>
+      </div>
+
+      {/* ── Ogohlantirish ── */}
+      <div className={`lb-alert lb-alert--${alertLevel}`}>
+        <i className={`ti ${alertLevel === 'danger' ? 'ti-alert-triangle' : 'ti-circle-check'}`}/>
+        {alertLevel === 'danger'
+          ? `${dangerRows.length} ko'rsatkich xavfli — ${dangerRows.map(r => r.name).join(', ')} me'yordan yuqori.`
+          : "Barcha ko'rsatkichlar me'yor doirasida"
+        }
+      </div>
+
+      {/* ── Jadval ── */}
+      <div className="lb-table-wrap">
+        <table className="lb-table">
+          <thead>
+            <tr>
+              <th>Ko'rsatkich</th>
+              <th>Me'yor</th>
+              <th>Daraja</th>
+              <th>Holati</th>
+              <th>Qiymat</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(row => {
+              const val   = labData[row.key] ?? null
+              const st    = labStatus(row.key, val)
+              const pct   = labBarPct(row.key, val)
+              const barClr = LB_BAR_COLOR[st?.cls ?? 'mid']
+              return (
+                <tr key={row.key}>
+                  <td className="lb-td-name">
+                    <div className="lb-row-name">{row.name}</div>
+                    <div className="lb-row-desc">{row.desc}</div>
+                  </td>
+                  <td className="lb-td-norm">{row.norm}</td>
+                  <td className="lb-td-bar">
+                    <div className="lb-bar-track">
+                      <div className="lb-bar-fill" style={{ width: `${pct}%`, background: barClr }}/>
+                    </div>
+                  </td>
+                  <td className="lb-td-status">
+                    {st
+                      ? <span className={`lb-badge lb-badge--${st.cls}`}>{st.label}</span>
+                      : <span className="lb-dim">—</span>}
+                  </td>
+                  <td className="lb-td-val">
+                    {val != null
+                      ? <>{Number.isInteger(val) ? val : val.toFixed(val < 10 ? 1 : 0)}{row.unit ? <span className="lb-unit"> {row.unit}</span> : ''}</>
+                      : <span className="lb-dim">—</span>}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────
 // TAHLILLAR DASHBOARD (full-screen overlay)
 // ─────────────────────────────────────────────
-function TahlillarDashboard({ onClose }) {
-  const [mounted,     setMounted]     = useState(false)
-  const [uploadOpen,  setUploadOpen]  = useState(false)
-  const [orderOpen,   setOrderOpen]   = useState(false)
+function TahlillarDashboard({ onClose, analysisData, polygonData }) {
+  const [mounted, setMounted] = useState(false)
   useEffect(() => { const t = setTimeout(() => setMounted(true), 80); return () => clearTimeout(t) }, [])
-
-  const totalArea = cropsData.features.reduce((sum, f) => sum + f.properties.maydoni, 0)
-  const emptyArea = cropsData.features.find(f => f.properties.ekin === "Bo'sh yer")?.properties?.maydoni ?? 0
-
-  const labItems = [
-    { label:'pH darajasi',   value:'7.2',  unit:'',     badge:'Normal', type:'normal'  },
-    { label:'EC',            value:'4.8',  unit:'dS/m', badge:'Yuqori', type:'warning' },
-    { label:'Organik modda', value:'1.2',  unit:'%',    badge:'Past',   type:'danger'  },
-    { label:'SAR',           value:'12.3', unit:'',     badge:'Xavfli', type:'danger'  },
-  ]
 
   return (
     <div className="db-overlay">
@@ -556,141 +1282,23 @@ function TahlillarDashboard({ onClose }) {
 
       <div className="db-scroll">
 
-        {/* ── 1. YUQORI: 3 stat karta ── */}
-        <div className="db-stats">
+        {/* ── 1. YUQORI: 3 monitoring karta ── */}
+        <MonitoringCards
+          analysisData={analysisData}
+          polygonData={polygonData}
+          mounted={mounted}
+        />
 
-          <div className="db-stat">
-            <div className="db-stat-top">
-              <span className="db-stat-icon">🌿</span>
-              <div className="db-stat-body">
-                <div className="db-stat-num db-stat-num--green">297.3 ga</div>
-                <div className="db-stat-lbl">Monitoring maydoni</div>
-              </div>
-            </div>
-            <div className="db-stat-bar-track">
-              <div className="db-stat-bar-fill db-stat-bar--green" style={{ width: mounted ? '100%' : '0%' }}/>
-            </div>
-          </div>
+        {/* ── 1b. TUPROQ INDEKSLARI JADVALI ── */}
+        <SoilIndicesTable analysisData={analysisData} />
 
-          <div className="db-stat">
-            <div className="db-stat-top">
-              <span className="db-stat-icon">⚠️</span>
-              <div className="db-stat-body">
-                <div className="db-stat-num db-stat-num--red">68%</div>
-                <div className="db-stat-lbl">Degradatsiya darajasi</div>
-              </div>
-            </div>
-            <div className="db-stat-bar-track">
-              <div className="db-stat-bar-fill db-stat-bar--red" style={{ width: mounted ? '68%' : '0%' }}/>
-            </div>
-          </div>
+        {/* ── 2. OB-HAVO ── */}
+        <WeatherCard />
 
-          <div className="db-stat">
-            <div className="db-stat-top">
-              <span className="db-stat-icon">💧</span>
-              <div className="db-stat-body">
-                <div className="db-stat-num db-stat-num--yellow">Kritik</div>
-                <div className="db-stat-lbl">Sug'orish holati</div>
-              </div>
-            </div>
-            <div className="db-stat-bar-track">
-              <div className="db-stat-bar-fill db-stat-bar--yellow" style={{ width: mounted ? '85%' : '0%' }}/>
-            </div>
-          </div>
-
-        </div>
-
-        {/* ── 2. O'RTA: ob-havo (60%) + ekin (40%) ── */}
-        <div className="db-mid">
-
-          {/* CHAP 60%: Ob-havo */}
-          <div className="db-card db-card--weather">
-            <div className="db-card-title">☀️ Ob-havo prognozi — NASA POWER</div>
-            <WeatherContent />
-          </div>
-
-          {/* O'NG 40%: Ekin Taqsimoti */}
-          <div className="db-card db-card--crops">
-            <div className="db-card-title">🌾 Ekin Taqsimoti</div>
-            <div className="db-crops">
-              {cropsData.features.map(f => {
-                const { ekin, maydoni } = f.properties
-                const pct = (maydoni / totalArea) * 100
-                return (
-                  <div key={ekin} className="db-crop-row">
-                    <div className="db-crop-head">
-                      <span className="db-crop-name">{ekin}</span>
-                      <span className="db-crop-ha">{maydoni} ga</span>
-                    </div>
-                    <div className="db-bar-track">
-                      <div className="db-bar-fill" style={{
-                        width: mounted ? `${pct}%` : '0%',
-                        background: CROP_BAR_COLORS[ekin] || '#555',
-                      }}/>
-                    </div>
-                    <div className="db-crop-pct">{pct.toFixed(1)}%</div>
-                  </div>
-                )
-              })}
-            </div>
-            <div className="db-crop-separator"/>
-            <div className="db-crop-totals">
-              <div className="db-crop-total-item">
-                <span className="db-crop-total-num">{totalArea.toFixed(1)} ga</span>
-                <span className="db-crop-total-lbl">Jami</span>
-              </div>
-              <div className="db-crop-total-item">
-                <span className="db-crop-total-num">{cropsData.features.length}</span>
-                <span className="db-crop-total-lbl">Tur soni</span>
-              </div>
-              <div className="db-crop-total-item">
-                <span className="db-crop-total-num">{(totalArea - emptyArea).toFixed(1)} ga</span>
-                <span className="db-crop-total-lbl">Ishlov</span>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        {/* ── 3. PASTKI: Laboratoriya (to'liq kenglik) ── */}
-        <div className="db-card">
-          <div className="db-card-title">🔬 Laboratoriya Tahlili</div>
-          <div className="db-lab-grid">
-            {labItems.map(item => (
-              <div key={item.label} className={`db-lab-card db-lab-card--${item.type}`}>
-                <div className="db-lab-name">{item.label}</div>
-                <div className="db-lab-val">{item.value}{item.unit ? ` ${item.unit}` : ''}</div>
-                <span className={`db-lab-badge db-lab-badge--${item.type}`}>{item.badge}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* ── Tugmalar qatori ── */}
-          <div className="db-lab-actions">
-            <button className="db-lab-btn db-lab-btn--upload" onClick={() => setUploadOpen(true)}>
-              📤 Laboratoriya natijasini yuklash
-            </button>
-            <button className="db-lab-btn db-lab-btn--order" onClick={() => setOrderOpen(true)}>
-              🔬 Laboratoriya xizmatiga buyurtma
-            </button>
-            <button className="db-lab-btn db-lab-btn--download" onClick={() => alert('Hisobot tayyorlanmoqda...')}>
-              📥 Yuklab olish
-            </button>
-          </div>
-
-          {/* ── AI izoh ── */}
-          <p className="db-lab-ai-note">
-            🤖 AI modelimiz har bir laboratoriya natijasidan o'rganib boradi — ma'lumotlar qancha ko'p bo'lsa, masofadan tahlil shunchalik aniqroq bo'ladi.
-          </p>
-        </div>
+        {/* ── 3. LABORATORIYA ── */}
+        <LabCard />
 
       </div>
-
-      {/* ── Modal 1: Natija yuklash ── */}
-      {uploadOpen && <UploadModal onClose={() => setUploadOpen(false)}/>}
-
-      {/* ── Modal 2: Buyurtma ── */}
-      {orderOpen && <OrderModal onClose={() => setOrderOpen(false)}/>}
 
     </div>
   )
@@ -808,6 +1416,13 @@ function App() {
   const [layerOpacity,    setLayerOpacity]    = useState(0.8)
   const [isLoading,       setIsLoading]       = useState(true)
   const [showTahlillar,   setShowTahlillar]   = useState(false)
+  const [activeTab,       setActiveTab]       = useState('xarita')
+  const [importedField,   setImportedField]   = useState(null)
+  const [dashAnalysis,    setDashAnalysis]    = useState(null)
+  const [dashPolygons,    setDashPolygons]    = useState([])
+
+  const showDraw        = activeTab === 'dala' || activeTab === 'ndre' || activeTab === 'msavi' || activeTab === 'smi' || activeTab === 'ai-detect'
+  const showFieldWizard = activeTab === 'fayl-yuklash'
 
   const hasFeatures = activeLayer.data?.features?.length > 0
 
@@ -816,6 +1431,24 @@ function App() {
     setSelectedFeature(null)
     setIsLoading(true)
     setShowTahlillar(false)
+    setActiveTab(layer.id)
+  }
+
+  const LAYER_IDS = new Set(LAYERS.map(l => l.id))
+
+  function handleTabChange(tabId) {
+    setActiveTab(tabId)
+    setSelectedFeature(null)
+    if (LAYER_IDS.has(tabId)) {
+      const layer = LAYERS.find(l => l.id === tabId)
+      setActiveLayer(layer)
+      setIsLoading(true)
+      setShowTahlillar(false)
+    } else if (tabId === 'dashboard' || tabId === 'laboratoriya') {
+      setShowTahlillar(true)
+    } else {
+      setShowTahlillar(false)
+    }
   }
 
   const onEachFeature = useCallback((feature, leafletLayer) => {
@@ -826,28 +1459,13 @@ function App() {
   }, [])
 
   return (
-    <div className="app-container">
-      {/* Tab qatori */}
-      <div className="layer-controls">
-        {LAYERS.map(layer => (
-          <button
-            key={layer.id}
-            className={`layer-btn${activeLayer.id === layer.id && !showTahlillar ? ' active' : ''}`}
-            onClick={() => handleLayerChange(layer)}
-          >
-            <span className="layer-btn-short">{layer.shortLabel}</span>
-            <span className="layer-btn-full">{layer.label}</span>
-          </button>
-        ))}
-        <div className="layer-btn-divider"/>
-        <button
-          className={`layer-btn layer-btn--tahlil${showTahlillar ? ' active' : ''}`}
-          onClick={() => { setShowTahlillar(t => !t); if (!showTahlillar) setSelectedFeature(null) }}
-        >
-          <span className="layer-btn-short">📊</span>
-          <span className="layer-btn-full">📊 Tahlillar</span>
-        </button>
-      </div>
+    <div className="app-layout">
+      <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
+
+      {activeTab === 'xarita' ? (
+        <MapPage onTabChange={handleTabChange} />
+      ) : (
+      <div className="app-main">
 
       {/* Shaffoflik slideri */}
       <div className="opacity-slider-container">
@@ -887,8 +1505,8 @@ function App() {
       <MapContainer center={DEFAULT_CENTER} zoom={DEFAULT_ZOOM}
         style={{ width:'100%', height:'100%' }} zoomControl={false}>
         <TileLayer
-          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-          attribution="Tiles &copy; Esri" maxZoom={19}/>
+          url="https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+          attribution="© Google" maxZoom={21} subdomains="0123"/>
         <MapFitBounds data={activeLayer.data}/>
         <MapControls/>
         {hasFeatures && (
@@ -902,11 +1520,38 @@ function App() {
 
       {/* Dashboard overlay — xaritaning ustida */}
       {showTahlillar && (
-        <TahlillarDashboard onClose={() => setShowTahlillar(false)}/>
+        <TahlillarDashboard
+          onClose={() => { setShowTahlillar(false); setActiveTab('xarita') }}
+          analysisData={dashAnalysis}
+          polygonData={dashPolygons}
+        />
+      )}
+
+      {/* Dala chizish overlay */}
+      {showDraw && (
+        <DrawMap
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          importedField={importedField}
+          onAnalysisUpdate={(a, p) => { setDashAnalysis(a); setDashPolygons(p) }}
+        />
       )}
 
       {/* AI Chat widget */}
       <AiChat/>
+
+      {/* Fayl yuklash wizard */}
+      {showFieldWizard && (
+        <FieldUploadWizard
+          onClose={() => setActiveTab('xarita')}
+          onConfirm={gj => {
+            setImportedField(gj)
+            setActiveTab('dala')
+          }}
+        />
+      )}
+      </div>
+      )}
     </div>
   )
 }

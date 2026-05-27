@@ -1,0 +1,198 @@
+/* ── Bottom instruction bar ──────────────── */
+.di-bar {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255,255,255,0.98);
+  border: 1px solid #E4E7EC;
+  border-radius: 14px;
+  padding: 10px 16px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08);
+  white-space: nowrap;
+  animation: di-slide-up 0.22s cubic-bezier(0.34,1.56,0.64,1);
+  max-width: 90vw;
+}
+@keyframes di-slide-up {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0);    }
+}
+
+/* ── Vertex counter ───────────────────────── */
+.di-count {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 34px;
+  background: #F8FAFC;
+  border-radius: 8px;
+  padding: 5px 8px;
+  border: 1px solid #E4E7EC;
+  transition: background 0.2s, border-color 0.2s;
+}
+.di-count--ready {
+  background: #EBF5EE;
+  border-color: #10B981;
+}
+
+.di-count-num {
+  font-size: 16px;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1;
+}
+.di-count--ready .di-count-num { color: #10B981; }
+
+.di-count-lbl {
+  font-size: 9px;
+  font-weight: 600;
+  color: #9BA3AF;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+/* ── Real-time area ──────────────────────── */
+.di-area {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 4px 8px;
+  background: #EBF5EE;
+  border-radius: 7px;
+  border: 1px solid #A7F3D0;
+  flex-shrink: 0;
+}
+.di-area-val {
+  font-size: 15px;
+  font-weight: 800;
+  color: #1B4D2F;
+  line-height: 1;
+}
+.di-area-unit {
+  font-size: 10px;
+  font-weight: 600;
+  color: #5F9E7A;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Separator ───────────────────────────── */
+.di-sep {
+  width: 1px;
+  height: 28px;
+  background: #E4E7EC;
+  flex-shrink: 0;
+}
+
+/* ── Message ─────────────────────────────── */
+.di-msg-wrap { flex: 1; min-width: 0; }
+
+.di-msg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #374151;
+}
+.di-msg--ready { color: #1B4D2F; }
+.di-msg strong { color: #111827; }
+.di-msg-ico {
+  font-size: 14px;
+  color: #F59E0B;
+  flex-shrink: 0;
+}
+.di-msg--ready .di-msg-ico { color: #10B981; }
+.di-close-hint {
+  color: #6B7280;
+  font-size: 12px;
+  margin-left: 2px;
+}
+
+/* ── Dots preview ────────────────────────── */
+.di-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.di-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #F59E0B;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.di-dot--first {
+  border-color: #10B981;
+  animation: di-pulse 1.6s ease-in-out infinite;
+}
+.di-dot-more {
+  font-size: 10px;
+  font-weight: 700;
+  color: #9BA3AF;
+}
+
+/* ── Finish button ───────────────────────── */
+.di-finish {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  background: #E4E7EC;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #9BA3AF;
+  cursor: not-allowed;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+  flex-shrink: 0;
+}
+.di-finish--ready {
+  background: #2D5F3F;
+  border-color: #2D5F3F;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(45,95,63,0.35);
+}
+.di-finish--ready:hover {
+  background: #235033;
+  border-color: #235033;
+  box-shadow: 0 4px 14px rgba(45,95,63,0.45);
+}
+.di-finish i { font-size: 14px; }
+
+/* ── Cancel button ───────────────────────── */
+.di-cancel {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background: none;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #EF4444;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.di-cancel:hover { background: #FEE2E2; border-color: #EF4444; }
+.di-cancel i { font-size: 13px; }
+
+@keyframes di-pulse {
+  0%   { box-shadow: 0 0 0 0   rgba(16,185,129,0.6); }
+  50%  { box-shadow: 0 0 0 5px rgba(16,185,129,0);   }
+  100% { box-shadow: 0 0 0 0   rgba(16,185,129,0.6); }
+}
