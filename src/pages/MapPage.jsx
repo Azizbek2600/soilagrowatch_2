@@ -9,6 +9,7 @@ import FieldDetailsPanel from '../components/panels/FieldDetailsPanel'
 import MapControls       from '../components/map/MapControls'
 import DrawInstructions  from '../components/map/DrawInstructions'
 import DrawControl       from '../components/map/DrawControl'
+import { t } from '../i18n'
 import '../styles/leaflet-draw-custom.css'
 import './MapPage.css'
 
@@ -31,11 +32,82 @@ const TILES = {
 
 const FIELD_STYLE = {
   color: '#2D5F3F', fillColor: '#2D5F3F',
-  fillOpacity: 0.25, weight: 2.5, opacity: 1,
+  fillOpacity: 0, weight: 2.5, opacity: 1,
 }
 const FIELD_STYLE_ACTIVE = {
   color: '#F59E0B', fillColor: '#F59E0B',
-  fillOpacity: 0.32, weight: 3, opacity: 1,
+  fillOpacity: 0, weight: 3, opacity: 1,
+}
+
+// ── NDVI Grid Heatmap helpers (12×12 cluster grid) ──
+function mpHmSeed(n) {
+  const x = Math.sin(n * 9301.0 + 49297.0) * 233280.0
+  return x - Math.floor(x)
+}
+function mpNdviColor(v) {
+  if (v >  0.60) return '#006400'
+  if (v >  0.40) return '#228B22'
+  if (v >  0.25) return '#90EE90'
+  if (v >  0.10) return '#FFFF00'
+  if (v > -0.10) return '#FFA500'
+  return                '#8B4513'
+}
+function mpPip(point, ring) {
+  const [px, py] = point
+  let inside = false
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j]
+    if (((yi > py) !== (yj > py)) && px < (xj - xi) * (py - yi) / (yj - yi) + xi)
+      inside = !inside
+  }
+  return inside
+}
+function buildGridHeatmap(map, geojson) {
+  const coords = geojson?.geometry?.coordinates?.[0]
+  if (!map || !coords || coords.length < 3) return null
+  const lngs = coords.map(c => c[0]), lats = coords.map(c => c[1])
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs)
+  const minLat = Math.min(...lats),  maxLat = Math.max(...lats)
+  const dLng = maxLng - minLng, dLat = maxLat - minLat
+  const ring = coords.map(c => [c[0], c[1]])
+  if (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1])
+    ring.push(ring[0])
+
+  const cx0 = ring.reduce((s, p) => s + p[0], 0) / ring.length
+  const cy0 = ring.reduce((s, p) => s + p[1], 0) / ring.length
+  const S = Math.round(cx0 * 1e4 + cy0 * 1e5)
+
+  const clusters = Array.from({ length: 5 }, (_, i) => ({
+    nx: mpHmSeed(S + i * 17), ny: mpHmSeed(S + i * 31 + 7), base: mpHmSeed(S + i * 53 + 13),
+  }))
+  clusters.sort((a, b) => b.base - a.base)
+  clusters[0].base =  0.55 + mpHmSeed(S + 100) * 0.20
+  clusters[1].base =  0.35 + mpHmSeed(S + 200) * 0.15
+  clusters[2].base =  0.15 + mpHmSeed(S + 300) * 0.12
+  clusters[3].base =  0.05 + mpHmSeed(S + 400) * 0.10
+  clusters[4].base = -0.08 + mpHmSeed(S + 500) * 0.10
+
+  const G = 80, cLng = dLng / G, cLat = dLat / G
+  const group = L.featureGroup()
+  for (let row = 0; row < G; row++) {
+    for (let col = 0; col < G; col++) {
+      const nx = (col + 0.5) / G, ny = (row + 0.5) / G
+      const lng = minLng + nx * dLng, lat = minLat + ny * dLat
+      if (!mpPip([lng, lat], ring)) continue
+      let wSum = 0, vSum = 0
+      for (const cl of clusters) {
+        const w = 1 / ((nx - cl.nx) ** 2 + (ny - cl.ny) ** 2 + 1e-4)
+        wSum += w; vSum += w * cl.base
+      }
+      const jitter = (mpHmSeed(S + row * 137 + col * 37) - 0.5) * 0.08
+      const ndvi = Math.max(-0.15, Math.min(0.85, vSum / wSum + jitter))
+      L.rectangle(
+        [[minLat + row * cLat, minLng + col * cLng], [minLat + (row + 1) * cLat, minLng + (col + 1) * cLng]],
+        { fillColor: mpNdviColor(ndvi), fillOpacity: 0.75, color: 'transparent', weight: 0, interactive: false }
+      ).addTo(group)
+    }
+  }
+  return group
 }
 
 // ── Toast helper ──
@@ -44,12 +116,14 @@ function makeToast(msg, type) {
   return { id: ++_toastId, msg, type }
 }
 
-export default function MapPage({ onTabChange }) {
+export default function MapPage({ onTabChange, lang }) {
+  const activeLang = lang ?? 'uz'
   const mapElRef       = useRef(null)
   const mapRef         = useRef(null)
   const tileLayersRef  = useRef({})
-  const fieldLayersRef = useRef({})
-  const drawnRef       = useRef(null)
+  const fieldLayersRef   = useRef({})
+  const heatmapGroupsRef = useRef({})
+  const drawnRef         = useRef(null)
   const drawCtrlRef    = useRef(null)   // DrawControl instance
 
   const [basemap,       setBasemap]       = useState('satellite')
@@ -125,12 +199,21 @@ export default function MapPage({ onTabChange }) {
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
+
+    // Remove old layers and heatmaps
+    Object.values(heatmapGroupsRef.current).forEach(g => map.removeLayer(g))
+    heatmapGroupsRef.current = {}
     Object.values(fieldLayersRef.current).forEach(l => map.removeLayer(l))
     fieldLayersRef.current = {}
 
     fields.forEach(field => {
       if (!field.geojson) return
       const isActive = selectedField?.id === field.id
+
+      // Heatmap first so polygon border renders on top
+      const hm = buildGridHeatmap(map, field.geojson)
+      if (hm) { hm.addTo(map); heatmapGroupsRef.current[field.id] = hm }
+
       const layer = L.geoJSON(field.geojson, {
         style: isActive ? FIELD_STYLE_ACTIVE : FIELD_STYLE,
         onEachFeature: (_, lyr) => {
@@ -280,6 +363,7 @@ export default function MapPage({ onTabChange }) {
         fields={fields}
         loading={loading}
         selectedId={selectedField?.id}
+        lang={activeLang}
         onSelect={handleSelectField}
         onZoom={handleSelectField}
         onDelete={deleteField}
@@ -292,6 +376,7 @@ export default function MapPage({ onTabChange }) {
       {/* ── Right details panel ── */}
       <FieldDetailsPanel
         field={selectedField}
+        lang={activeLang}
         onClose={() => setSelectedField(null)}
       />
 
@@ -303,6 +388,7 @@ export default function MapPage({ onTabChange }) {
         overlays={overlays}
         onOverlayChange={setOverlays}
         rightOffset={selectedField ? 338 : 18}
+        lang={activeLang}
       />
 
       {/* ── Drawing instructions (bottom center) ── */}
@@ -312,6 +398,7 @@ export default function MapPage({ onTabChange }) {
           areaHa={drawnAreaHa}
           onFinish={handleFinishDraw}
           onCancel={handleCancelDraw}
+          lang={activeLang}
         />
       )}
 
@@ -322,7 +409,7 @@ export default function MapPage({ onTabChange }) {
             <div className="mp-modal-hdr">
               <span className="mp-modal-title">
                 <i className="ti ti-pencil" />
-                Dala chizish
+                {t(activeLang, 'drawFieldTitle')}
               </span>
               <button className="mp-modal-x" onClick={handleCancelDraw}>
                 <i className="ti ti-x" />
@@ -330,40 +417,27 @@ export default function MapPage({ onTabChange }) {
             </div>
 
             <div className="mp-modal-body">
-              <p className="mp-modal-desc">
-                Dala chegaralarini xaritada belgilang. Istalgancha nuqta qo'yishingiz mumkin.
-              </p>
+              <p className="mp-modal-desc">{t(activeLang, 'drawDesc')}</p>
               <ol className="mp-steps">
-                <li>
-                  <span className="mp-step-num">1</span>
-                  Xaritada dalangiz hududiga boring (scroll + drag)
+                <li><span className="mp-step-num">1</span>{t(activeLang, 'step1')}</li>
+                <li><span className="mp-step-num">2</span>
+                  <span dangerouslySetInnerHTML={{ __html: t(activeLang, 'step2') }} />
                 </li>
-                <li>
-                  <span className="mp-step-num">2</span>
-                  <strong>Boshlash</strong> tugmasini bosing
+                <li><span className="mp-step-num">3</span>{t(activeLang, 'step3')}</li>
+                <li><span className="mp-step-num">4</span>
+                  <span dangerouslySetInnerHTML={{ __html: t(activeLang, 'step4') }} />
                 </li>
-                <li>
-                  <span className="mp-step-num">3</span>
-                  Dala chegaralarini nuqta-nuqta belgilang (cheksiz nuqta)
-                </li>
-                <li>
-                  <span className="mp-step-num">4</span>
-                  Xohlagan nuqtada <span className="mp-step-highlight">Yakunlash</span> tugmasini bosing
-                </li>
-                <li>
-                  <span className="mp-step-num">5</span>
-                  Dala nomini kiriting va saqlang
-                </li>
+                <li><span className="mp-step-num">5</span>{t(activeLang, 'step5')}</li>
               </ol>
             </div>
 
             <div className="mp-modal-ftr">
               <button className="mp-btn mp-btn--ghost" onClick={handleCancelDraw}>
-                Bekor
+                {t(activeLang, 'cancel')}
               </button>
               <button className="mp-btn mp-btn--primary" onClick={handleActivateDraw}>
                 <i className="ti ti-pencil" />
-                Boshlash
+                {t(activeLang, 'start')}
               </button>
             </div>
           </div>
@@ -377,7 +451,7 @@ export default function MapPage({ onTabChange }) {
             <div className="mp-modal-hdr">
               <span className="mp-modal-title">
                 <i className="ti ti-device-floppy" />
-                Dalani saqlash
+                {t(activeLang, 'saveFieldTitle')}
               </span>
               <button className="mp-modal-x" onClick={handleCancelDraw}>
                 <i className="ti ti-x" />
@@ -387,7 +461,7 @@ export default function MapPage({ onTabChange }) {
             <div className="mp-modal-body">
               <div className="mp-area-card">
                 <div className="mp-area-item">
-                  <span className="mp-area-lbl">Maydoni</span>
+                  <span className="mp-area-lbl">{t(activeLang, 'fieldArea')}</span>
                   <span className="mp-area-val">{drawnAreaHa.toFixed(2)} ga</span>
                 </div>
                 <div className="mp-area-sep" />
@@ -399,11 +473,11 @@ export default function MapPage({ onTabChange }) {
                 </div>
               </div>
 
-              <label className="mp-label">Dala nomi *</label>
+              <label className="mp-label">{t(activeLang, 'fieldName')}</label>
               <input
                 className="mp-input"
                 type="text"
-                placeholder="Masalan: Shimoliy dala #1"
+                placeholder={t(activeLang, 'fieldNamePh')}
                 value={fieldName}
                 onChange={e => setFieldName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSaveField()}
@@ -423,8 +497,8 @@ export default function MapPage({ onTabChange }) {
                 disabled={!fieldName.trim() || saving}
               >
                 {saving
-                  ? <><div className="mp-spinner" /> Saqlanmoqda...</>
-                  : <><i className="ti ti-device-floppy" /> Saqlash</>
+                  ? <><div className="mp-spinner" /> {t(activeLang, 'saving')}</>
+                  : <><i className="ti ti-device-floppy" /> {t(activeLang, 'save')}</>
                 }
               </button>
             </div>

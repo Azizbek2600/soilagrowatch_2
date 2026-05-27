@@ -1,6 +1,8 @@
+import { t } from '../../i18n'
 import './DrawInstructions.css'
 
-export default function DrawInstructions({ vertexCount, areaHa = 0, onFinish, onCancel }) {
+export default function DrawInstructions({ vertexCount, areaHa = 0, onFinish, onCancel, lang }) {
+  const L   = lang ?? 'uz'
   const need  = Math.max(0, 3 - vertexCount)
   const ready = vertexCount >= 3
 
@@ -10,7 +12,7 @@ export default function DrawInstructions({ vertexCount, areaHa = 0, onFinish, on
       {/* Vertex counter */}
       <div className={`di-count${ready ? ' di-count--ready' : ''}`}>
         <span className="di-count-num">{vertexCount}</span>
-        <span className="di-count-lbl">nuqta</span>
+        <span className="di-count-lbl">{t(L, 'pointWord')}</span>
       </div>
 
       {/* Area display (only when >= 3 vertices) */}
@@ -31,19 +33,22 @@ export default function DrawInstructions({ vertexCount, areaHa = 0, onFinish, on
         {vertexCount === 0 && (
           <span className="di-msg">
             <i className="ti ti-map-pin di-msg-ico" />
-            Birinchi nuqtani belgilang
+            {t(L, 'markFirstPoint')}
           </span>
         )}
         {vertexCount > 0 && vertexCount < 3 && (
           <span className="di-msg">
             <i className="ti ti-circle-plus di-msg-ico" />
-            Yana <strong>{need}</strong> ta nuqta qo'shing
+            {L === 'en'
+              ? <>Add <strong>{need}</strong> more {need === 1 ? 'point' : 'points'}</>
+              : <>Yana <strong>{need}</strong> ta nuqta qo'shing</>
+            }
           </span>
         )}
         {ready && (
           <span className="di-msg di-msg--ready">
             <i className="ti ti-check di-msg-ico" />
-            <strong>{vertexCount}</strong> nuqta — istalgancha qo'shing yoki yakunlang
+            <strong>{vertexCount}</strong> {t(L, 'pointWord')} — {t(L, 'readyContinue')}
           </span>
         )}
       </div>
@@ -65,10 +70,10 @@ export default function DrawInstructions({ vertexCount, areaHa = 0, onFinish, on
         className={`di-finish${ready ? ' di-finish--ready' : ''}`}
         onClick={onFinish}
         disabled={!ready}
-        title={ready ? 'Polygonni yoping va saqlang' : 'Kamida 3 ta nuqta kerak'}
+        title={ready ? t(L, 'polygonClose') : t(L, 'needMinPoints')}
       >
         <i className="ti ti-check" />
-        Yakunlash
+        {t(L, 'finishBtn')}
       </button>
 
       <div className="di-sep" />
@@ -76,7 +81,7 @@ export default function DrawInstructions({ vertexCount, areaHa = 0, onFinish, on
       {/* Cancel */}
       <button className="di-cancel" onClick={onCancel}>
         <i className="ti ti-x" />
-        Bekor
+        {t(L, 'cancelBtn')}
       </button>
     </div>
   )

@@ -1,8 +1,9 @@
 import { useState } from 'react'
+import { t } from '../../i18n'
 import './FieldListPanel.css'
 
 export default function FieldListPanel({
-  fields, loading, selectedId,
+  fields, loading, selectedId, lang,
   onSelect, onZoom, onDelete, onDraw, onUpload,
   open, onToggle,
 }) {
@@ -22,7 +23,13 @@ export default function FieldListPanel({
     "Yo'q": '#10B981', 'Past': '#10B981',
     "O'rtacha": '#F59E0B', 'Yuqori': '#EF4444',
     'Juda yuqori': '#EF4444',
+    // computed keys
+    'Yaxshi holat': '#10B981', 'Good condition': '#10B981',
+    "O'rtacha": '#F59E0B', 'Average': '#F59E0B',
+    'Yuqori degradatsiya': '#EF4444', 'High degradation': '#EF4444',
   }
+
+  const activeLang = lang ?? 'uz'
 
   return (
     <>
@@ -30,7 +37,7 @@ export default function FieldListPanel({
       <button
         className={`flp-toggle${open ? ' flp-toggle--open' : ''}`}
         onClick={onToggle}
-        title={open ? "Yopish" : "Maydonlar ro'yxati"}
+        title={open ? t(activeLang, 'collapse') : t(activeLang, 'fields')}
       >
         <i className={`ti ${open ? 'ti-chevron-left' : 'ti-list'}`} />
       </button>
@@ -42,7 +49,7 @@ export default function FieldListPanel({
         <div className="flp-header">
           <div className="flp-header-left">
             <i className="ti ti-map-2 flp-header-icon" />
-            <span className="flp-title">Maydonlar</span>
+            <span className="flp-title">{t(activeLang, 'fields')}</span>
           </div>
           <span className="flp-count">{fields.length}</span>
         </div>
@@ -53,7 +60,7 @@ export default function FieldListPanel({
           <input
             className="flp-search-inp"
             type="text"
-            placeholder="Qidirish..."
+            placeholder={t(activeLang, 'search')}
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -68,11 +75,11 @@ export default function FieldListPanel({
         <div className="flp-action-row">
           <button className="flp-add-btn flp-add-btn--primary" onClick={onDraw}>
             <i className="ti ti-pencil" />
-            Yangi maydon
+            {t(activeLang, 'newField')}
           </button>
-          <button className="flp-add-btn flp-add-btn--upload" onClick={onUpload} title="Shapefile, GeoJSON, KML yuklash">
+          <button className="flp-add-btn flp-add-btn--upload" onClick={onUpload} title="Shapefile, GeoJSON, KML">
             <i className="ti ti-file-upload" />
-            Fayl
+            {t(activeLang, 'file')}
           </button>
         </div>
 
@@ -81,17 +88,17 @@ export default function FieldListPanel({
           {loading && (
             <div className="flp-state">
               <div className="flp-spinner" />
-              <span>Yuklanmoqda...</span>
+              <span>{t(activeLang, 'loading')}</span>
             </div>
           )}
 
           {!loading && filtered.length === 0 && (
             <div className="flp-state">
               <i className="ti ti-map-off flp-state-icon" />
-              <span>{search ? "Topilmadi" : "Maydonlar yo'q"}</span>
+              <span>{search ? t(activeLang, 'notFound') : t(activeLang, 'noFields')}</span>
               {!search && (
                 <button className="flp-state-cta" onClick={onDraw}>
-                  <i className="ti ti-plus" /> Qo'shish
+                  <i className="ti ti-plus" /> {t(activeLang, 'add')}
                 </button>
               )}
             </div>
@@ -131,14 +138,14 @@ export default function FieldListPanel({
                 <div className="flp-actions">
                   <button
                     className="flp-act-btn"
-                    title="Xaritada ko'rish"
+                    title={t(activeLang, 'viewOnMap')}
                     onClick={e => { e.stopPropagation(); onZoom(field) }}
                   >
                     <i className="ti ti-focus-2" />
                   </button>
                   <button
                     className="flp-act-btn flp-act-btn--del"
-                    title="O'chirish"
+                    title={t(activeLang, 'delete')}
                     onClick={e => { e.stopPropagation(); onDelete(field.id) }}
                   >
                     <i className="ti ti-trash" />
@@ -152,8 +159,11 @@ export default function FieldListPanel({
         {/* Footer stats */}
         {fields.length > 0 && !loading && (
           <div className="flp-footer">
-            <span>Jami: <strong>{fields.reduce((s, f) => s + (f.area_ha ?? 0), 0).toFixed(1)} ga</strong></span>
-            <span>{fields.length} dala</span>
+            <span>
+              {t(activeLang, 'totalArea')}:{' '}
+              <strong>{fields.reduce((s, f) => s + (f.area_ha ?? 0), 0).toFixed(1)} ga</strong>
+            </span>
+            <span>{fields.length} {t(activeLang, 'field')}</span>
           </div>
         )}
       </div>

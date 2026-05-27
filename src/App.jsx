@@ -8,6 +8,7 @@ import DrawMap from './components/DrawMap'
 import Sidebar from './components/Sidebar'
 import FieldUploadWizard from './components/FieldUploadWizard'
 import MapPage from './pages/MapPage'
+import { t as ti18n } from './i18n'
 
 import ndviData   from './data/ndvi.json'
 import ndwiData   from './data/ndwi.json'
@@ -280,7 +281,8 @@ function Legend({ layer }) {
 // ─────────────────────────────────────────────
 // OB-HAVO KARTASI
 // ─────────────────────────────────────────────
-function WeatherCard() {
+function WeatherCard({ lang }) {
+  const L = lang ?? 'uz'
   const [weatherData,  setWeatherData]  = useState(null)
   const [loading,      setLoading]      = useState(true)
   const chartRef      = useRef(null)
@@ -299,14 +301,14 @@ function WeatherCard() {
         labels: days.map(d => fmtDayName(d.date)),
         datasets: [
           {
-            label: 'Harorat (°C)',
+            label: ti18n(L, 'wcTempDeg'),
             data: days.map(d => d.temp != null ? +d.temp.toFixed(1) : null),
             borderColor: '#EF9F27', pointBackgroundColor: '#EF9F27',
             borderWidth: 2, tension: 0.3, yAxisID: 'y', fill: false,
             pointRadius: 3, pointHoverRadius: 5,
           },
           {
-            label: "Yog'in (mm)",
+            label: ti18n(L, 'wcRainMmLbl'),
             data: days.map(d => +(d.rain ?? 0).toFixed(1)),
             borderColor: '#378ADD', pointBackgroundColor: '#378ADD',
             borderWidth: 2, tension: 0.3, yAxisID: 'y1', fill: false,
@@ -391,14 +393,18 @@ function WeatherCard() {
   }
 
   function fmtDayName(s) {
-    const dow = ['Yak','Dsh','Sesh','Chsh','Psh','Jm','Sh']
+    const dow = L === 'en'
+      ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+      : ['Yak','Dsh','Sesh','Chsh','Psh','Jm','Sh']
     const d = new Date(+s.slice(0,4), +s.slice(4,6)-1, +s.slice(6,8))
     return dow[d.getDay()]
   }
 
   function windDirLabel(deg) {
     if (deg == null || deg < 0) return '—'
-    const dirs = ['Shimol','Sh-Sharq','Sharq','J-Sharq','Janub','J-G\'arb','G\'arb','Sh-G\'arb']
+    const dirs = L === 'en'
+      ? ['N','NE','E','SE','S','SW','W','NW']
+      : ['Shimol','Sh-Sharq','Sharq','J-Sharq','Janub',"J-G'arb","G'arb","Sh-G'arb"]
     return dirs[Math.round(deg / 45) % 8]
   }
 
@@ -407,7 +413,7 @@ function WeatherCard() {
       <div className="wc-card">
         <div className="wc-loading">
           <div className="map-loader-spinner" style={{ width:20, height:20, borderWidth:2 }}/>
-          <span>Ob-havo ma'lumoti yuklanmoqda...</span>
+          <span>{ti18n(L, 'wcLoading')}</span>
         </div>
       </div>
     )
@@ -418,11 +424,9 @@ function WeatherCard() {
   const totalRain7 = days.reduce((s, d) => s + (d.rain ?? 0), 0)
   const avgTemp    = days.length ? days.reduce((s,d) => s+(d.temp??0),0)/days.length : null
   const alertLevel = totalRain7 < 5 ? 'danger' : totalRain7 <= 15 ? 'warn' : 'good'
-  const alertText  = {
-    danger: `Qurg'oqchilik xavfi — 7 kunda ${totalRain7.toFixed(1)} mm yog'in. Harorat ko'tarilmoqda.`,
-    warn:   "Yog'in me'yorda — dalani kuzating",
-    good:   "Yog'in yetarli — sug'orish shart emas",
-  }[alertLevel]
+  const alertText  = alertLevel === 'danger'
+    ? `${ti18n(L, 'wcAlertDanger')} — 7 ${ti18n(L, 'mc7days')} ${totalRain7.toFixed(1)} ${ti18n(L, 'wcRainMm')}`
+    : alertLevel === 'warn' ? ti18n(L, 'wcAlertWarn') : ti18n(L, 'wcAlertGood')
   const alertIcon  = { danger: 'ti-alert-triangle', warn: 'ti-alert-circle', good: 'ti-circle-check' }[alertLevel]
   const rainValCls = totalRain7 < 5 ? 'wc-val--red' : totalRain7 <= 15 ? 'wc-val--yellow' : 'wc-val--blue'
 
@@ -433,7 +437,7 @@ function WeatherCard() {
       <div className="wc-header">
         <div className="wc-header-left">
           <div className="wc-icon"><i className="ti ti-cloud"/></div>
-          <span className="wc-title">Ob-havo prognozi</span>
+          <span className="wc-title">{ti18n(L, 'wcTitle')}</span>
         </div>
         <span className="wc-nasa-badge">NASA POWER</span>
       </div>
@@ -447,21 +451,21 @@ function WeatherCard() {
       {/* ── 3 Metrics ── */}
       <div className="wc-metrics">
         <div className="wc-metric">
-          <div className="wc-metric-label">Bugungi harorat</div>
+          <div className="wc-metric-label">{ti18n(L, 'wcTodayTemp')}</div>
           <div className="wc-metric-val">
             {today?.temp != null ? `${today.temp.toFixed(1)}°C` : '—'}
           </div>
           <div className="wc-metric-sub">
-            O'rtacha: {avgTemp != null ? `${avgTemp.toFixed(1)}°C` : '—'}
+            {ti18n(L, 'wcAvgLbl')}: {avgTemp != null ? `${avgTemp.toFixed(1)}°C` : '—'}
           </div>
         </div>
         <div className="wc-metric wc-metric--mid">
-          <div className="wc-metric-label">Yog'in (7 kun)</div>
+          <div className="wc-metric-label">{ti18n(L, 'wcRain7')}</div>
           <div className={`wc-metric-val ${rainValCls}`}>{totalRain7.toFixed(1)} mm</div>
-          <div className="wc-metric-sub">Norma: 12–15 mm</div>
+          <div className="wc-metric-sub">{ti18n(L, 'wcNorm')}</div>
         </div>
         <div className="wc-metric">
-          <div className="wc-metric-label">Shamol tezligi</div>
+          <div className="wc-metric-label">{ti18n(L, 'wcWindSpeed')}</div>
           <div className="wc-metric-val">
             {today?.wind != null ? `${today.wind.toFixed(1)} m/s` : '—'}
           </div>
@@ -480,7 +484,7 @@ function WeatherCard() {
             : { cls: 'ti-sun',        color: '#EF9F27' }
           return (
             <div key={d.date} className={`wc-day${isToday ? ' wc-day--today' : ''}`}>
-              <div className="wc-day-name">{isToday ? 'Bugun' : fmtDayName(d.date)}</div>
+              <div className="wc-day-name">{isToday ? ti18n(L, 'wcToday') : fmtDayName(d.date)}</div>
               <i className={`ti ${icon.cls} wc-day-icon`} style={{ color: icon.color }}/>
               <div className="wc-day-temp">{d.temp != null ? `${d.temp.toFixed(0)}°` : '—'}</div>
               <div className={`wc-day-rain${d.rain > 0 ? ' wc-day-rain--wet' : ' wc-day-rain--dry'}`}>
@@ -494,12 +498,12 @@ function WeatherCard() {
       {/* ── Chart ── */}
       <div className="wc-chart-section">
         <div className="wc-chart-header">
-          <span className="wc-chart-title">Harorat va yog'in — oxirgi 7 kun</span>
+          <span className="wc-chart-title">{ti18n(L, 'wcChartTitle')}</span>
           <div className="wc-chart-legend">
             <span className="wc-legend-dot" style={{ background:'#EF9F27' }}/>
-            <span className="wc-legend-label">Harorat</span>
+            <span className="wc-legend-label">{ti18n(L, 'wcLegendTemp')}</span>
             <span className="wc-legend-dot" style={{ background:'#378ADD' }}/>
-            <span className="wc-legend-label">Yog'in</span>
+            <span className="wc-legend-label">{ti18n(L, 'wcLegendRain')}</span>
           </div>
         </div>
         <div className="wc-chart-wrap">
@@ -514,7 +518,8 @@ function WeatherCard() {
 // ─────────────────────────────────────────────
 // MODAL: Laboratoriya natijasini yuklash
 // ─────────────────────────────────────────────
-function UploadModal({ onClose }) {
+function UploadModal({ onClose, lang }) {
+  const L = lang ?? 'uz'
   const [done,    setDone]    = useState(false)
   const [manual,  setManual]  = useState({ ph:'', ec:'', organic:'', sar:'' })
   const [file,    setFile]    = useState(null)
@@ -534,32 +539,27 @@ function UploadModal({ onClose }) {
     <div className="lm-backdrop" onClick={onClose}>
       <div className="lm-box" onClick={e => e.stopPropagation()}>
         <div className="lm-header">
-          <span>Laboratoriya tahlilini yuklash</span>
+          <span>{ti18n(L, 'lmTitle')}</span>
           <button className="lm-close" onClick={onClose}>✕</button>
         </div>
         {done ? (
-          <div className="lm-success">
-            ✅ Rahmat! Natija qabul qilindi va AI modeliga qo'shildi
-          </div>
+          <div className="lm-success">{ti18n(L, 'lmSuccess')}</div>
         ) : (
           <form className="lm-body" onSubmit={handleSubmit}>
-            <p className="lm-desc">
-              Agar sizda mustaqil laboratoriya natijasi bo'lsa, uni shu yerga yuklang.
-              Bizning AI modelimiz natijani o'rganib, kelajakdagi tahlillar aniqligini oshiradi.
-            </p>
+            <p className="lm-desc">{ti18n(L, 'lmDesc')}</p>
 
-            <label className="lm-label">Fayl yuklash (PDF, JPG, PNG)</label>
+            <label className="lm-label">{ti18n(L, 'lmFileLabel')}</label>
             <input
               type="file" accept=".pdf,.jpg,.jpeg,.png"
               className="lm-file"
               onChange={e => setFile(e.target.files[0])}
             />
 
-            <div className="lm-divider"><span>yoki qo'lda kiriting</span></div>
+            <div className="lm-divider"><span>{ti18n(L, 'lmOrManual')}</span></div>
 
             <div className="lm-grid">
               {[
-                { key:'ph',      label:'pH darajasi',   placeholder:'7.0' },
+                { key:'ph',      label: ti18n(L, 'lmPhLabel'), placeholder:'7.0' },
                 { key:'ec',      label:'EC (dS/m)',      placeholder:'4.0' },
                 { key:'organic', label:'Organik modda (%)', placeholder:'1.5' },
                 { key:'sar',     label:'SAR',            placeholder:'10.0' },
@@ -576,7 +576,7 @@ function UploadModal({ onClose }) {
               ))}
             </div>
 
-            <button type="submit" className="lm-submit">Yuborish</button>
+            <button type="submit" className="lm-submit">{ti18n(L, 'lmSubmit')}</button>
           </form>
         )}
       </div>
@@ -587,7 +587,8 @@ function UploadModal({ onClose }) {
 // ─────────────────────────────────────────────
 // MODAL: Laboratoriya buyurtma
 // ─────────────────────────────────────────────
-function OrderModal({ onClose }) {
+function OrderModal({ onClose, lang }) {
+  const L = lang ?? 'uz'
   const [done, setDone] = useState(false)
   const [form, setForm] = useState({ name:'', phone:'', region:'', area:'', note:'' })
 
@@ -608,46 +609,41 @@ function OrderModal({ onClose }) {
     <div className="lm-backdrop" onClick={onClose}>
       <div className="lm-box" onClick={e => e.stopPropagation()}>
         <div className="lm-header">
-          <span>Tuproq tahlili xizmati</span>
+          <span>{ti18n(L, 'omTitle')}</span>
           <button className="lm-close" onClick={onClose}>✕</button>
         </div>
         {done ? (
-          <div className="lm-success">
-            ✅ Buyurtmangiz qabul qilindi! 24 soat ichida bog'lanamiz
-          </div>
+          <div className="lm-success">{ti18n(L, 'omSuccess')}</div>
         ) : (
           <form className="lm-body" onSubmit={handleSubmit}>
-            <p className="lm-desc">
-              Bizning hamkor laboratoriyamiz sizning yeringizdan namuna olib, to'liq tahlil qiladi.
-              Natija 5–7 kun ichida tayyor bo'ladi va avtomatik tarzda tizimga yuklanadi.
-            </p>
+            <p className="lm-desc">{ti18n(L, 'omDesc')}</p>
 
             <div className="lm-grid">
               <div className="lm-field lm-field--full">
-                <label className="lm-field-label">Ism *</label>
-                <input required className="lm-input" placeholder="To'liq ismingiz" value={form.name} onChange={set('name')}/>
+                <label className="lm-field-label">{ti18n(L, 'omName')}</label>
+                <input required className="lm-input" placeholder={L === 'en' ? 'Full name' : "To'liq ismingiz"} value={form.name} onChange={set('name')}/>
               </div>
               <div className="lm-field">
-                <label className="lm-field-label">Telefon *</label>
+                <label className="lm-field-label">{ti18n(L, 'omPhone')}</label>
                 <input required className="lm-input" placeholder="+998 90 000 00 00" value={form.phone} onChange={set('phone')}/>
               </div>
               <div className="lm-field">
-                <label className="lm-field-label">Hudud *</label>
-                <input required className="lm-input" placeholder="Tuman, qishloq" value={form.region} onChange={set('region')}/>
+                <label className="lm-field-label">{ti18n(L, 'omRegion')}</label>
+                <input required className="lm-input" placeholder={L === 'en' ? 'District, village' : 'Tuman, qishloq'} value={form.region} onChange={set('region')}/>
               </div>
               <div className="lm-field">
-                <label className="lm-field-label">Maydon (gektar)</label>
+                <label className="lm-field-label">{ti18n(L, 'omArea')}</label>
                 <input type="number" min="0" step="0.1" className="lm-input" placeholder="10.0" value={form.area} onChange={set('area')}/>
               </div>
               <div className="lm-field lm-field--full">
-                <label className="lm-field-label">Izoh</label>
-                <textarea className="lm-input lm-textarea" placeholder="Qo'shimcha ma'lumot..." value={form.note} onChange={set('note')}/>
+                <label className="lm-field-label">{ti18n(L, 'omNote')}</label>
+                <textarea className="lm-input lm-textarea" placeholder={L === 'en' ? 'Additional information...' : "Qo'shimcha ma'lumot..."} value={form.note} onChange={set('note')}/>
               </div>
             </div>
 
-            <div className="lm-price">💰 Narx: <strong>250,000 so'm / namuna</strong></div>
+            <div className="lm-price">{ti18n(L, 'omPrice')}</div>
 
-            <button type="submit" className="lm-submit">Buyurtma berish</button>
+            <button type="submit" className="lm-submit">{ti18n(L, 'omSubmit')}</button>
           </form>
         )}
       </div>
@@ -658,7 +654,8 @@ function OrderModal({ onClose }) {
 // ─────────────────────────────────────────────
 // MONITORING CARDS — 3 expandable stat cards
 // ─────────────────────────────────────────────
-function MonitoringCards({ analysisData, polygonData, mounted }) {
+function MonitoringCards({ analysisData, polygonData, mounted, lang }) {
+  const L = lang ?? 'uz'
   const [open, setOpen] = useState(false)
   const [wx,   setWx]   = useState(null)
 
@@ -701,7 +698,7 @@ function MonitoringCards({ analysisData, polygonData, mounted }) {
   const hasArea    = totalHa > 0
   const isGee      = analysisData?.source === 'GEE'
   const tahlilDate = analysisData?.period ?? '—'
-  const sourceLabel = isGee ? 'Sentinel-2 · GEE' : analysisData?.source === 'local' ? "Mahalliy ma'lumot" : '—'
+  const sourceLabel = isGee ? 'Sentinel-2 · GEE' : analysisData?.source === 'local' ? ti18n(L, 'mcLocalData') : '—'
 
   /* ── Karta 2: Tuproq sho'rlanishi ── */
   const siVal    = analysisData?.si?.avg ?? null
@@ -711,22 +708,22 @@ function MonitoringCards({ analysisData, polygonData, mounted }) {
       ? siVal < 0.05 ? 'good' : siVal <= 0.2 ? 'mid' : 'bad'
       : siVal <= 2   ? 'good' : siVal <= 3.5  ? 'mid' : 'bad'
   const siLabel = !hasSI ? '—'
-    : siStatus === 'good' ? 'Yaxshi'
-    : siStatus === 'mid'  ? "O'rtacha"
-    : 'Yuqori'
+    : siStatus === 'good' ? ti18n(L, 'mcSiGood')
+    : siStatus === 'mid'  ? ti18n(L, 'mcSiAvg')
+    : ti18n(L, 'mcSiHigh')
   const siBadge = !hasSI ? null
-    : siStatus === 'good' ? { text: 'Yaxshi',  cls: 'good' }
-    : siStatus === 'mid'  ? { text: 'Diqqat',  cls: 'mid'  }
-    : { text: 'Xavfli', cls: 'bad' }
+    : siStatus === 'good' ? { text: ti18n(L, 'mcSiGood'),       cls: 'good' }
+    : siStatus === 'mid'  ? { text: ti18n(L, 'mcBadgeAttention'), cls: 'mid'  }
+    : { text: ti18n(L, 'mcBadgeDanger'), cls: 'bad' }
   const siBars = hasSI ? (() => {
     const norm    = isGee ? Math.min(siVal / 0.3, 1) : Math.min((siVal - 1) / 4, 1)
     const badPct  = Math.round(Math.max(0, 70 * norm * norm))
     const goodPct = Math.round(Math.max(0, 90 - 85 * norm))
     const midPct  = Math.max(0, 100 - goodPct - badPct)
     return [
-      { label: "Sho'rlanmagan",    pct: goodPct, color: '#1B7C45' },
-      { label: "O'rtacha sho'r",   pct: midPct,  color: '#B45309' },
-      { label: "Kuchli sho'r",     pct: badPct,  color: '#DC2626' },
+      { labelKey: 'mcNotSalted', pct: goodPct, color: '#1B7C45' },
+      { labelKey: 'mcMidSalt',   pct: midPct,  color: '#B45309' },
+      { labelKey: 'mcHighSalt',  pct: badPct,  color: '#DC2626' },
     ]
   })() : null
   const badSIPct = siBars?.[2]?.pct ?? 0
@@ -735,18 +732,18 @@ function MonitoringCards({ analysisData, polygonData, mounted }) {
   const isDrought    = wx != null && wx.totalRain7 < 5
   const isHeat       = wx != null && wx.lastTemp != null && wx.lastTemp > 30
   const wxValueLabel = !wx ? '…'
-    : isDrought ? "Qurg'oqlik"
-    : (wx.totalRain7 > 20) ? "Yomg'irli"
-    : 'Normal'
+    : isDrought ? ti18n(L, 'mcDrought')
+    : (wx.totalRain7 > 20) ? ti18n(L, 'mcRainy')
+    : ti18n(L, 'mcNormal')
   const wxBadge = !wx ? null
-    : (isDrought || isHeat) ? { text: 'Xavf bor', cls: 'bad' }
-    : wx.totalRain7 > 20    ? { text: 'Yaxshi',   cls: 'good' }
-    : { text: 'Normal', cls: 'mid' }
+    : (isDrought || isHeat) ? { text: ti18n(L, 'mcRiskBadge'), cls: 'bad' }
+    : wx.totalRain7 > 20    ? { text: ti18n(L, 'mcSiGood'),    cls: 'good' }
+    : { text: ti18n(L, 'mcNormal'), cls: 'mid' }
   const wxIcon = isDrought || isHeat ? 'ti-sun' : (wx?.totalRain7 ?? 0) > 5 ? 'ti-cloud-rain' : 'ti-sun'
   const wxIconCls = (isDrought || isHeat) ? 'mc-icon-box--red' : (wx?.totalRain7 ?? 0) > 5 ? 'mc-icon-box--blue' : 'mc-icon-box--yellow'
   const wxSubText = !wx ? ''
-    : isDrought ? `Oxirgi 7 kunda yog'in yo'q (${wx.totalRain7.toFixed(1)} mm)`
-    : `Yog'in: ${wx.totalRain7.toFixed(1)} mm`
+    : isDrought ? `${ti18n(L, 'mcNoRain7')} (${wx.totalRain7.toFixed(1)} mm)`
+    : `${ti18n(L, 'mcRainAmt')}: ${wx.totalRain7.toFixed(1)} mm`
 
   function fmtDate(s) {
     const m = ['Yan','Fev','Mar','Apr','May','Iyn','Iyl','Avg','Sen','Okt','Nov','Dek']
@@ -770,17 +767,17 @@ function MonitoringCards({ analysisData, polygonData, mounted }) {
           </div>
           <div className="mc-info">
             <div className="mc-label-row">
-              <span className="mc-label">MONITORING MAYDONI</span>
-              {hasArea && <span className="mc-badge mc-badge--good">Faol</span>}
+              <span className="mc-label">{ti18n(L, 'mcMonArea')}</span>
+              {hasArea && <span className="mc-badge mc-badge--good">{ti18n(L, 'active')}</span>}
             </div>
             <div className={`mc-value ${hasArea ? 'mc-value--green' : 'mc-value--dim'}`}>
-              {hasArea ? `${totalHa.toFixed(2)} ga` : 'Tanlanmagan'}
+              {hasArea ? `${totalHa.toFixed(2)} ga` : ti18n(L, 'mcNotSelected')}
             </div>
             <div className="mc-sub">
-              {hasArea ? `${totalM2.toLocaleString()} m²` : 'Polygon chizing'}
+              {hasArea ? `${totalM2.toLocaleString()} m²` : ti18n(L, 'mcDrawPolygon')}
             </div>
           </div>
-          <button className="mc-toggle" onClick={toggle} aria-label="Batafsil">
+          <button className="mc-toggle" onClick={toggle} aria-label="Details">
             <Chevron/>
           </button>
         </div>
@@ -789,19 +786,19 @@ function MonitoringCards({ analysisData, polygonData, mounted }) {
           <div className="mc-divider"/>
           <div className="mc-detail-inner">
             {!hasArea ? (
-              <p className="mc-empty">Dala chizish rejimida polygon belgilang</p>
+              <p className="mc-empty">{ti18n(L, 'mcDrawHint')}</p>
             ) : (
               <div className="mc-rows">
                 <div className="mc-row">
-                  <span className="mc-row-key">Dalalar soni</span>
-                  <span className="mc-row-val">{fieldCount} ta</span>
+                  <span className="mc-row-key">{ti18n(L, 'mcFieldCount')}</span>
+                  <span className="mc-row-val">{fieldCount} {L === 'uz' ? 'ta' : ''}</span>
                 </div>
                 <div className="mc-row">
-                  <span className="mc-row-key">Tahlil sanasi</span>
+                  <span className="mc-row-key">{ti18n(L, 'mcAnalysisDate')}</span>
                   <span className="mc-row-val">{tahlilDate}</span>
                 </div>
                 <div className="mc-row">
-                  <span className="mc-row-key">Ma'lumot manbai</span>
+                  <span className="mc-row-key">{ti18n(L, 'mcDataSource')}</span>
                   <span className="mc-row-val">{sourceLabel}</span>
                 </div>
               </div>
@@ -818,7 +815,7 @@ function MonitoringCards({ analysisData, polygonData, mounted }) {
           </div>
           <div className="mc-info">
             <div className="mc-label-row">
-              <span className="mc-label">TUPROQ SHO'RLANISHI</span>
+              <span className="mc-label">{ti18n(L, 'mcSalinity')}</span>
               {siBadge && (
                 <span className={`mc-badge mc-badge--${siBadge.cls}`}>{siBadge.text}</span>
               )}
@@ -827,7 +824,7 @@ function MonitoringCards({ analysisData, polygonData, mounted }) {
               {siLabel}
             </div>
             <div className="mc-sub">
-              {hasSI ? `SI indeksi: ${isGee ? siVal.toFixed(4) : siVal.toFixed(2)}` : 'Tahlil kutilmoqda'}
+              {hasSI ? `${ti18n(L, 'mcSiIndex')}: ${isGee ? siVal.toFixed(4) : siVal.toFixed(2)}` : ti18n(L, 'mcAnalysisPending')}
             </div>
           </div>
           <button className="mc-toggle" onClick={toggle} aria-label="Batafsil">
@@ -839,12 +836,12 @@ function MonitoringCards({ analysisData, polygonData, mounted }) {
           <div className="mc-divider"/>
           <div className="mc-detail-inner">
             {!hasSI ? (
-              <p className="mc-empty">Polygon chizib GEE tahlilini bajaring</p>
+              <p className="mc-empty">{ti18n(L, 'mcRunGEE')}</p>
             ) : (
               <>
                 {siBars.map(bar => (
-                  <div key={bar.label} className="mc-bar-item">
-                    <span className="mc-bar-label">{bar.label}</span>
+                  <div key={bar.labelKey} className="mc-bar-item">
+                    <span className="mc-bar-label">{ti18n(L, bar.labelKey)}</span>
                     <div className="mc-bar-track">
                       <div className="mc-bar-fill"
                         style={{ width: mounted ? `${bar.pct}%` : '0%', background: bar.color }}/>
@@ -855,7 +852,7 @@ function MonitoringCards({ analysisData, polygonData, mounted }) {
                 {badSIPct > 10 && (
                   <div className="mc-alert-row mc-alert-row--yellow">
                     <i className="ti ti-alert-triangle"/>
-                    {badSIPct}% maydon yuvish (промывка) talab qiladi
+                    {badSIPct}{ti18n(L, 'mcIrrigNeeded')}
                   </div>
                 )}
               </>
@@ -872,7 +869,7 @@ function MonitoringCards({ analysisData, polygonData, mounted }) {
           </div>
           <div className="mc-info">
             <div className="mc-label-row">
-              <span className="mc-label">OB-HAVO HOLATI</span>
+              <span className="mc-label">{ti18n(L, 'mcWeather')}</span>
               {wxBadge && (
                 <span className={`mc-badge mc-badge--${wxBadge.cls}`}>{wxBadge.text}</span>
               )}
@@ -880,7 +877,7 @@ function MonitoringCards({ analysisData, polygonData, mounted }) {
             <div className={`mc-value ${(isDrought || isHeat) ? 'mc-value--red' : wx ? 'mc-value--green' : 'mc-value--dim'}`}>
               {wxValueLabel}
             </div>
-            <div className="mc-sub">{wxSubText || 'NASA POWER yuklanmoqda…'}</div>
+            <div className="mc-sub">{wxSubText || ti18n(L, 'mcWeatherLoad')}</div>
           </div>
           <button className="mc-toggle" onClick={toggle} aria-label="Batafsil">
             <Chevron/>
@@ -891,37 +888,37 @@ function MonitoringCards({ analysisData, polygonData, mounted }) {
           <div className="mc-divider"/>
           <div className="mc-detail-inner">
             {!wx ? (
-              <p className="mc-empty">NASA POWER ma'lumotlari yuklanmoqda…</p>
+              <p className="mc-empty">{ti18n(L, 'mcWeatherLoad')}</p>
             ) : (
               <>
                 <div className="mc-rows">
                   <div className="mc-row">
-                    <span className="mc-row-key">Bugungi harorat</span>
+                    <span className="mc-row-key">{ti18n(L, 'mcTodayTemp')}</span>
                     <span className="mc-row-val">
                       {wx.lastTemp != null ? `${wx.lastTemp.toFixed(1)}°C` : '—'}
                     </span>
                   </div>
                   <div className="mc-row">
-                    <span className="mc-row-key">7 kunlik yog'in</span>
+                    <span className="mc-row-key">{ti18n(L, 'mcRain7')}</span>
                     <span className="mc-row-val">{wx.totalRain7.toFixed(1)} mm</span>
                   </div>
                   {wx.nextDays.length > 0 && (
                     <div className="mc-row">
-                      <span className="mc-row-key">Oxirgi 3 kun</span>
+                      <span className="mc-row-key">{ti18n(L, 'mcLast3')}</span>
                       <span className="mc-row-val">
                         {wx.nextDays.map(d => `${fmtDate(d.date)} ${d.temp?.toFixed(0)}°`).join(' · ')}
                       </span>
                     </div>
                   )}
                   <div className="mc-row">
-                    <span className="mc-row-key">Manba</span>
+                    <span className="mc-row-key">{ti18n(L, 'mcSourceLabel')}</span>
                     <span className="mc-row-val">NASA POWER</span>
                   </div>
                 </div>
                 {(isHeat || isDrought) && (
                   <div className="mc-alert-row mc-alert-row--red">
                     <i className="ti ti-alert-triangle"/>
-                    Harorat ko'tarilmoqda — bug'lanish ortib ketishi mumkin
+                    {ti18n(L, 'mcHeatWarn')}
                   </div>
                 )}
               </>
@@ -939,51 +936,52 @@ function MonitoringCards({ analysisData, polygonData, mounted }) {
 // ─────────────────────────────────────────────
 const INDEX_META = [
   {
-    key: 'ndvi', label: 'NDVI', desc: "O'simlik qoplami", geeOnly: false,
-    status:      (v, gee) => gee ? (v >= 0.4 ? 'good' : v >= 0.2 ? 'mid' : 'bad')
-                                 : (v >= 3.5 ? 'good' : v >= 2.5 ? 'mid' : 'bad'),
-    statusLabel: (v, gee) => gee ? (v >= 0.4 ? 'Yaxshi' : v >= 0.2 ? "O'rtacha" : 'Past')
-                                 : (v >= 3.5 ? 'Yaxshi' : v >= 2.5 ? "O'rtacha" : 'Past'),
+    key: 'ndvi', label: 'NDVI', descKey: 'idxNdvi', geeOnly: false,
+    status:    (v, gee) => gee ? (v >= 0.4 ? 'good' : v >= 0.2 ? 'mid' : 'bad')
+                               : (v >= 3.5 ? 'good' : v >= 2.5 ? 'mid' : 'bad'),
+    statusKey: (v, gee) => gee ? (v >= 0.4 ? 'stGood' : v >= 0.2 ? 'stAvg' : 'stLow')
+                               : (v >= 3.5 ? 'stGood' : v >= 2.5 ? 'stAvg' : 'stLow'),
   },
   {
-    key: 'ndwi', label: 'NDWI', desc: 'Namlik indeksi', geeOnly: false,
-    status:      (v, gee) => gee ? (v >= 0 ? 'good' : v >= -0.2 ? 'mid' : 'bad')
-                                 : (v >= 3.5 ? 'good' : v >= 2.5 ? 'mid' : 'bad'),
-    statusLabel: (v, gee) => gee ? (v >= 0 ? 'Namli' : v >= -0.2 ? "O'rtacha" : 'Quruq')
-                                 : (v >= 3.5 ? 'Namli' : v >= 2.5 ? "O'rtacha" : 'Quruq'),
+    key: 'ndwi', label: 'NDWI', descKey: 'idxNdwi', geeOnly: false,
+    status:    (v, gee) => gee ? (v >= 0 ? 'good' : v >= -0.2 ? 'mid' : 'bad')
+                               : (v >= 3.5 ? 'good' : v >= 2.5 ? 'mid' : 'bad'),
+    statusKey: (v, gee) => gee ? (v >= 0 ? 'stMoist' : v >= -0.2 ? 'stAvg' : 'stDry')
+                               : (v >= 3.5 ? 'stMoist' : v >= 2.5 ? 'stAvg' : 'stDry'),
   },
   {
-    key: 'si', label: 'SI', desc: "Sho'rlanish indeksi", geeOnly: false,
-    status:      (v, gee) => gee ? (v < 0.05 ? 'good' : v <= 0.2 ? 'mid' : 'bad')
-                                 : (v <= 2 ? 'good' : v <= 3 ? 'mid' : 'bad'),
-    statusLabel: (v, gee) => gee ? (v < 0.05 ? "Sho'rsiz" : v <= 0.2 ? "O'rtacha" : "Sho'rlangan")
-                                 : (v <= 2 ? "Sho'rsiz" : v <= 3 ? "O'rtacha" : "Sho'rlangan"),
+    key: 'si', label: 'SI', descKey: 'idxSi', geeOnly: false,
+    status:    (v, gee) => gee ? (v < 0.05 ? 'good' : v <= 0.2 ? 'mid' : 'bad')
+                               : (v <= 2 ? 'good' : v <= 3 ? 'mid' : 'bad'),
+    statusKey: (v, gee) => gee ? (v < 0.05 ? 'stSaltFree' : v <= 0.2 ? 'stAvg' : 'stSalted')
+                               : (v <= 2 ? 'stSaltFree' : v <= 3 ? 'stAvg' : 'stSalted'),
   },
   {
-    key: 'bsi', label: 'BSI', desc: 'Yalangoch tuproq', geeOnly: false,
-    status:      (v, gee) => gee ? (v <= 0 ? 'good' : v <= 0.1 ? 'mid' : 'bad')
-                                 : (v <= 2 ? 'good' : v <= 3 ? 'mid' : 'bad'),
-    statusLabel: (v, gee) => gee ? (v <= 0 ? 'Qoplangan' : v <= 0.1 ? "O'rtacha" : 'Yalangoch')
-                                 : (v <= 2 ? 'Qoplangan' : v <= 3 ? "O'rtacha" : 'Yalangoch'),
+    key: 'bsi', label: 'BSI', descKey: 'idxBsi', geeOnly: false,
+    status:    (v, gee) => gee ? (v <= 0 ? 'good' : v <= 0.1 ? 'mid' : 'bad')
+                               : (v <= 2 ? 'good' : v <= 3 ? 'mid' : 'bad'),
+    statusKey: (v, gee) => gee ? (v <= 0 ? 'stCovered' : v <= 0.1 ? 'stAvg' : 'stBare')
+                               : (v <= 2 ? 'stCovered' : v <= 3 ? 'stAvg' : 'stBare'),
   },
   {
-    key: 'ndre', label: 'NDRE', desc: "O'simlik sog'lig'i", geeOnly: true,
-    status:      (v) => v >= 0.3 ? 'good' : v >= 0.15 ? 'mid' : 'bad',
-    statusLabel: (v) => v >= 0.3 ? "Sog'lom" : v >= 0.15 ? "O'rtacha" : 'Zaif',
+    key: 'ndre', label: 'NDRE', descKey: 'idxNdre', geeOnly: true,
+    status:    (v) => v >= 0.3 ? 'good' : v >= 0.15 ? 'mid' : 'bad',
+    statusKey: (v) => v >= 0.3 ? 'stHealthy' : v >= 0.15 ? 'stAvg' : 'stWeak',
   },
   {
-    key: 'msavi', label: 'MSAVI', desc: "Tuproq ta'siri", geeOnly: true,
-    status:      (v) => v >= 0.3 ? 'good' : v >= 0.15 ? 'mid' : 'bad',
-    statusLabel: (v) => v >= 0.3 ? 'Yaxshi' : v >= 0.15 ? "O'rtacha" : 'Past',
+    key: 'msavi', label: 'MSAVI', descKey: 'idxMsavi', geeOnly: true,
+    status:    (v) => v >= 0.3 ? 'good' : v >= 0.15 ? 'mid' : 'bad',
+    statusKey: (v) => v >= 0.3 ? 'stGood' : v >= 0.15 ? 'stAvg' : 'stLow',
   },
   {
-    key: 'smi', label: 'SMI', desc: 'Tuproq namligi', geeOnly: true,
-    status:      (v) => v >= 0.4 ? 'good' : v >= 0.2 ? 'mid' : 'bad',
-    statusLabel: (v) => v >= 0.4 ? 'Namli' : v >= 0.2 ? "O'rtacha" : 'Quruq',
+    key: 'smi', label: 'SMI', descKey: 'idxSmi', geeOnly: true,
+    status:    (v) => v >= 0.4 ? 'good' : v >= 0.2 ? 'mid' : 'bad',
+    statusKey: (v) => v >= 0.4 ? 'stMoist' : v >= 0.2 ? 'stAvg' : 'stDry',
   },
 ]
 
-function SoilIndicesTable({ analysisData }) {
+function SoilIndicesTable({ analysisData, lang }) {
+  const L = lang ?? 'uz'
   const wrapRef = useRef(null)
   const [vThumb, setVThumb] = useState({ top: 0, height: 0, visible: false })
 
@@ -1020,7 +1018,7 @@ function SoilIndicesTable({ analysisData }) {
         <div className="sit-header-left">
           <div className="sit-icon-box"><i className="ti ti-leaf"/></div>
           <div>
-            <div className="sit-title">Tuproq indekslari</div>
+            <div className="sit-title">{ti18n(L, 'idxTitle')}</div>
             <div className="sit-subtitle">Sentinel-2 · {year}</div>
           </div>
         </div>
@@ -1032,30 +1030,30 @@ function SoilIndicesTable({ analysisData }) {
           <table className="sit-table">
             <thead>
               <tr>
-                <th>Indeks</th>
-                <th>Nima o'lchaydi</th>
-                <th>Qiymat</th>
-                <th>Holati</th>
-                <th>Trend</th>
+                <th>{ti18n(L, 'idxColIndex')}</th>
+                <th>{ti18n(L, 'idxColWhat')}</th>
+                <th>{ti18n(L, 'idxColValue')}</th>
+                <th>{ti18n(L, 'idxColStatus')}</th>
+                <th>{ti18n(L, 'idxColTrend')}</th>
               </tr>
             </thead>
             <tbody>
               {rows.map(m => {
-                const entry = analysisData && !analysisData.empty ? analysisData[m.key] : null
-                const val   = entry?.avg ?? null
-                const st    = val != null ? m.status(val, isGee) : null
-                const stLbl = val != null ? m.statusLabel(val, isGee) : null
+                const entry  = analysisData && !analysisData.empty ? analysisData[m.key] : null
+                const val    = entry?.avg ?? null
+                const st     = val != null ? m.status(val, isGee) : null
+                const stKey  = val != null ? m.statusKey(val, isGee) : null
                 return (
                   <tr key={m.key}>
                     <td className="sit-td-key">
                       <span className="sit-idx-label">{m.label}</span>
                       {m.geeOnly && <span className="sit-gee-mini">GEE</span>}
                     </td>
-                    <td className="sit-td-desc">{m.desc}</td>
+                    <td className="sit-td-desc">{ti18n(L, m.descKey)}</td>
                     <td className="sit-td-val">{val != null ? val.toFixed(4) : '—'}</td>
                     <td className="sit-td-status">
                       {st
-                        ? <span className={`sit-badge sit-badge--${st}`}>{stLbl}</span>
+                        ? <span className={`sit-badge sit-badge--${st}`}>{stKey ? ti18n(L, stKey) : ''}</span>
                         : <span className="sit-dim">—</span>}
                     </td>
                     <td className="sit-td-trend"><span className="sit-dim">—</span></td>
@@ -1085,49 +1083,49 @@ const LAB_DATA = {
 }
 
 const SOIL_ROWS = [
-  { key: 'ph',  name: 'pH',  desc: 'Tuproq kislotaligi',         norm: '6.5 – 7.5',    unit: ''     },
-  { key: 'ec',  name: 'EC',  desc: "Elektr o'tkazuvchanlik",     norm: '< 2.0 dS/m',   unit: 'dS/m' },
-  { key: 'sar', name: 'SAR', desc: 'Natriy absorbsiya nisbati',  norm: '< 9.0',         unit: ''     },
+  { key: 'ph',  name: 'pH',  descKey: 'lbPhDesc',  norm: '6.5 – 7.5',  unit: ''     },
+  { key: 'ec',  name: 'EC',  descKey: 'lbEcDesc',  norm: '< 2.0 dS/m', unit: 'dS/m' },
+  { key: 'sar', name: 'SAR', descKey: 'lbSarDesc', norm: '< 9.0',       unit: ''     },
 ]
 
 const NUTR_ROWS = [
-  { key: 'nitrogen',   name: 'Azot (N)',   desc: 'Asosiy oziqa element',  norm: '40–60 mg/kg',   unit: 'mg/kg' },
-  { key: 'phosphorus', name: 'Fosfor (P)', desc: 'Ildiz va gul rivojida', norm: '20–40 mg/kg',   unit: 'mg/kg' },
-  { key: 'potassium',  name: 'Kaliy (K)',  desc: 'Hosil sifati',          norm: '200–400 mg/kg', unit: 'mg/kg' },
-  { key: 'humus',      name: 'Gumus',      desc: 'Organik modda miqdori', norm: '> 2.0 %',       unit: '%'     },
+  { key: 'nitrogen',   name: 'Azot (N)',   descKey: 'lbNitrDesc',  norm: '40–60 mg/kg',   unit: 'mg/kg' },
+  { key: 'phosphorus', name: 'Fosfor (P)', descKey: 'lbPhosDesc',  norm: '20–40 mg/kg',   unit: 'mg/kg' },
+  { key: 'potassium',  name: 'Kaliy (K)',  descKey: 'lbKalDesc',   norm: '200–400 mg/kg', unit: 'mg/kg' },
+  { key: 'humus',      name: 'Gumus',      descKey: 'lbHumusDesc', norm: '> 2.0 %',       unit: '%'     },
 ]
 
 function labStatus(key, val) {
   if (val == null) return null
   switch (key) {
     case 'ph':
-      if (val >= 6.5 && val <= 7.5) return { label: 'Normal',    cls: 'good' }
-      if (val < 6.0  || val > 8.0)  return { label: 'Xavfli',    cls: 'bad'  }
-      return                               { label: "O'rtacha",   cls: 'mid'  }
+      if (val >= 6.5 && val <= 7.5) return { labelKey: 'lbStNormal', cls: 'good' }
+      if (val < 6.0  || val > 8.0)  return { labelKey: 'lbStDanger', cls: 'bad'  }
+      return                               { labelKey: 'lbStAvg',    cls: 'mid'  }
     case 'ec':
-      if (val < 2.0)  return { label: 'Normal', cls: 'good' }
-      if (val <= 4.0) return { label: 'Yuqori', cls: 'mid'  }
-      return                 { label: 'Xavfli', cls: 'bad'  }
+      if (val < 2.0)  return { labelKey: 'lbStNormal', cls: 'good' }
+      if (val <= 4.0) return { labelKey: 'lbStHigh',   cls: 'mid'  }
+      return                 { labelKey: 'lbStDanger',  cls: 'bad'  }
     case 'sar':
-      if (val < 9.0)   return { label: 'Normal', cls: 'good' }
-      if (val <= 18.0) return { label: 'Yuqori', cls: 'mid'  }
-      return                  { label: 'Xavfli', cls: 'bad'  }
+      if (val < 9.0)   return { labelKey: 'lbStNormal', cls: 'good' }
+      if (val <= 18.0) return { labelKey: 'lbStHigh',   cls: 'mid'  }
+      return                  { labelKey: 'lbStDanger',  cls: 'bad'  }
     case 'nitrogen':
-      if (val > 40)  return { label: 'Normal',    cls: 'good' }
-      if (val >= 20) return { label: 'Past',       cls: 'mid'  }
-      return               { label: 'Juda past',  cls: 'bad'  }
+      if (val > 40)  return { labelKey: 'lbStNormal',  cls: 'good' }
+      if (val >= 20) return { labelKey: 'lbStLow',     cls: 'mid'  }
+      return               { labelKey: 'lbStVeryLow',  cls: 'bad'  }
     case 'phosphorus':
-      if (val > 20)  return { label: 'Normal',    cls: 'good' }
-      if (val >= 10) return { label: 'Past',       cls: 'mid'  }
-      return               { label: 'Juda past',  cls: 'bad'  }
+      if (val > 20)  return { labelKey: 'lbStNormal',  cls: 'good' }
+      if (val >= 10) return { labelKey: 'lbStLow',     cls: 'mid'  }
+      return               { labelKey: 'lbStVeryLow',  cls: 'bad'  }
     case 'potassium':
-      if (val > 200)  return { label: 'Normal',   cls: 'good' }
-      if (val >= 100) return { label: "O'rtacha", cls: 'mid'  }
-      return                { label: 'Past',       cls: 'bad'  }
+      if (val > 200)  return { labelKey: 'lbStNormal', cls: 'good' }
+      if (val >= 100) return { labelKey: 'lbStAvg',    cls: 'mid'  }
+      return                { labelKey: 'lbStLow',      cls: 'bad'  }
     case 'humus':
-      if (val > 2.0)  return { label: 'Normal',    cls: 'good' }
-      if (val >= 1.0) return { label: 'Past',       cls: 'mid'  }
-      return                { label: 'Juda past',  cls: 'bad'  }
+      if (val > 2.0)  return { labelKey: 'lbStNormal', cls: 'good' }
+      if (val >= 1.0) return { labelKey: 'lbStLow',    cls: 'mid'  }
+      return                { labelKey: 'lbStVeryLow',  cls: 'bad'  }
     default: return null
   }
 }
@@ -1141,7 +1139,8 @@ function labBarPct(key, val) {
 
 const LB_BAR_COLOR = { good: '#1B7C45', mid: '#EF9F27', bad: '#E24B4A' }
 
-function LabCard({ onGoToLab }) {
+function LabCard({ onGoToLab, lang }) {
+  const L = lang ?? 'uz'
   const [panel, setPanel] = useState('soil')
   const labData = LAB_DATA
 
@@ -1157,14 +1156,14 @@ function LabCard({ onGoToLab }) {
         <div className="lb-header">
           <div className="lb-header-left">
             <div className="lb-icon"><i className="ti ti-flask"/></div>
-            <span className="lb-title">Laboratoriya tahlili</span>
+            <span className="lb-title">{ti18n(L, 'lbTitle')}</span>
           </div>
         </div>
         <div className="lb-empty">
           <i className="ti ti-flask-off lb-empty-icon"/>
-          <p className="lb-empty-text">Laboratoriya tahlili natijasi yuklanmagan</p>
+          <p className="lb-empty-text">{ti18n(L, 'lbNoResult')}</p>
           <button className="lb-empty-btn" onClick={onGoToLab}>
-            <i className="ti ti-upload"/> Natija yuklash
+            <i className="ti ti-upload"/> {ti18n(L, 'lbUploadResult')}
           </button>
         </div>
       </div>
@@ -1178,9 +1177,9 @@ function LabCard({ onGoToLab }) {
       <div className="lb-header">
         <div className="lb-header-left">
           <div className="lb-icon"><i className="ti ti-flask"/></div>
-          <span className="lb-title">Laboratoriya tahlili</span>
+          <span className="lb-title">{ti18n(L, 'lbTitle')}</span>
         </div>
-        <span className="lb-date">Tahlil sanasi: {labData.date}</span>
+        <span className="lb-date">{ti18n(L, 'lbDate')}: {labData.date}</span>
       </div>
 
       {/* ── Boshqaruv ── */}
@@ -1189,11 +1188,11 @@ function LabCard({ onGoToLab }) {
           <button
             className={`lb-toggle${panel === 'soil' ? ' lb-toggle--active' : ''}`}
             onClick={() => setPanel('soil')}
-          >Tuproq muhiti</button>
+          >{ti18n(L, 'lbSoilEnv')}</button>
           <button
             className={`lb-toggle${panel === 'nutrients' ? ' lb-toggle--active' : ''}`}
             onClick={() => setPanel('nutrients')}
-          >Oziqa moddalari</button>
+          >{ti18n(L, 'lbNutrients')}</button>
         </div>
         <button className="lb-pdf-btn" onClick={() => alert('PDF hisobot tayyorlanmoqda...')}>
           <i className="ti ti-file-download"/> PDF
@@ -1204,8 +1203,8 @@ function LabCard({ onGoToLab }) {
       <div className={`lb-alert lb-alert--${alertLevel}`}>
         <i className={`ti ${alertLevel === 'danger' ? 'ti-alert-triangle' : 'ti-circle-check'}`}/>
         {alertLevel === 'danger'
-          ? `${dangerRows.length} ko'rsatkich xavfli — ${dangerRows.map(r => r.name).join(', ')} me'yordan yuqori.`
-          : "Barcha ko'rsatkichlar me'yor doirasida"
+          ? `${dangerRows.length} ${ti18n(L, 'lbDangerCount')} — ${dangerRows.map(r => r.name).join(', ')} ${ti18n(L, 'lbAboveNorm')}.`
+          : ti18n(L, 'lbAllGood')
         }
       </div>
 
@@ -1214,11 +1213,11 @@ function LabCard({ onGoToLab }) {
         <table className="lb-table">
           <thead>
             <tr>
-              <th>Ko'rsatkich</th>
-              <th>Me'yor</th>
-              <th>Daraja</th>
-              <th>Holati</th>
-              <th>Qiymat</th>
+              <th>{ti18n(L, 'lbColIndicator')}</th>
+              <th>{ti18n(L, 'lbColNorm')}</th>
+              <th>{ti18n(L, 'lbColLevel')}</th>
+              <th>{ti18n(L, 'lbColStatus')}</th>
+              <th>{ti18n(L, 'lbColValue')}</th>
             </tr>
           </thead>
           <tbody>
@@ -1231,7 +1230,7 @@ function LabCard({ onGoToLab }) {
                 <tr key={row.key}>
                   <td className="lb-td-name">
                     <div className="lb-row-name">{row.name}</div>
-                    <div className="lb-row-desc">{row.desc}</div>
+                    <div className="lb-row-desc">{ti18n(L, row.descKey)}</div>
                   </td>
                   <td className="lb-td-norm">{row.norm}</td>
                   <td className="lb-td-bar">
@@ -1241,7 +1240,7 @@ function LabCard({ onGoToLab }) {
                   </td>
                   <td className="lb-td-status">
                     {st
-                      ? <span className={`lb-badge lb-badge--${st.cls}`}>{st.label}</span>
+                      ? <span className={`lb-badge lb-badge--${st.cls}`}>{ti18n(L, st.labelKey)}</span>
                       : <span className="lb-dim">—</span>}
                   </td>
                   <td className="lb-td-val">
@@ -1263,21 +1262,22 @@ function LabCard({ onGoToLab }) {
 // ─────────────────────────────────────────────
 // TAHLILLAR DASHBOARD (full-screen overlay)
 // ─────────────────────────────────────────────
-function TahlillarDashboard({ onClose, analysisData, polygonData }) {
+function TahlillarDashboard({ onClose, analysisData, polygonData, lang }) {
+  const L = lang ?? 'uz'
   const [mounted, setMounted] = useState(false)
-  useEffect(() => { const t = setTimeout(() => setMounted(true), 80); return () => clearTimeout(t) }, [])
+  useEffect(() => { const timer = setTimeout(() => setMounted(true), 80); return () => clearTimeout(timer) }, [])
 
   return (
     <div className="db-overlay">
 
       {/* ── Header ── */}
       <div className="db-header">
-        <button className="db-back" onClick={onClose}>← Xaritaga qaytish</button>
+        <button className="db-back" onClick={onClose}>{ti18n(L, 'dbBack')}</button>
         <div className="db-logo">
           <span className="db-logo-dot"/>
           <span className="db-logo-text">SoilAgroWatch</span>
         </div>
-        <div className="db-meta">Nukus tumani • 2026-05-02</div>
+        <div className="db-meta">{ti18n(L, 'dbMeta')}</div>
       </div>
 
       <div className="db-scroll">
@@ -1287,16 +1287,17 @@ function TahlillarDashboard({ onClose, analysisData, polygonData }) {
           analysisData={analysisData}
           polygonData={polygonData}
           mounted={mounted}
+          lang={L}
         />
 
         {/* ── 1b. TUPROQ INDEKSLARI JADVALI ── */}
-        <SoilIndicesTable analysisData={analysisData} />
+        <SoilIndicesTable analysisData={analysisData} lang={L} />
 
         {/* ── 2. OB-HAVO ── */}
-        <WeatherCard />
+        <WeatherCard lang={L} />
 
         {/* ── 3. LABORATORIYA ── */}
-        <LabCard />
+        <LabCard lang={L} />
 
       </div>
 
@@ -1420,6 +1421,7 @@ function App() {
   const [importedField,   setImportedField]   = useState(null)
   const [dashAnalysis,    setDashAnalysis]    = useState(null)
   const [dashPolygons,    setDashPolygons]    = useState([])
+  const [lang,            setLang]            = useState('uz')
 
   const showDraw        = activeTab === 'dala' || activeTab === 'ndre' || activeTab === 'msavi' || activeTab === 'smi' || activeTab === 'ai-detect'
   const showFieldWizard = activeTab === 'fayl-yuklash'
@@ -1460,10 +1462,10 @@ function App() {
 
   return (
     <div className="app-layout">
-      <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
+      <Sidebar activeTab={activeTab} onTabChange={handleTabChange} lang={lang} setLang={setLang} />
 
       {activeTab === 'xarita' ? (
-        <MapPage onTabChange={handleTabChange} />
+        <MapPage onTabChange={handleTabChange} lang={lang} />
       ) : (
       <div className="app-main">
 
@@ -1524,6 +1526,7 @@ function App() {
           onClose={() => { setShowTahlillar(false); setActiveTab('xarita') }}
           analysisData={dashAnalysis}
           polygonData={dashPolygons}
+          lang={lang}
         />
       )}
 
@@ -1534,11 +1537,12 @@ function App() {
           onTabChange={setActiveTab}
           importedField={importedField}
           onAnalysisUpdate={(a, p) => { setDashAnalysis(a); setDashPolygons(p) }}
+          lang={lang}
         />
       )}
 
       {/* AI Chat widget */}
-      <AiChat/>
+      <AiChat lang={lang} setLang={setLang}/>
 
       {/* Fayl yuklash wizard */}
       {showFieldWizard && (
@@ -1548,6 +1552,7 @@ function App() {
             setImportedField(gj)
             setActiveTab('dala')
           }}
+          lang={lang}
         />
       )}
       </div>
@@ -1557,25 +1562,762 @@ function App() {
 }
 
 // ─────────────────────────────────────────────
-// AI CHAT WIDGET
+// AI CHAT — DEMO REJIM (API kerak emas)
 // ─────────────────────────────────────────────
-const SYSTEM_PROMPT = `Siz SoilAgroWatch loyihasi bo'yicha AI yordamchisiz.
-Faqat quyidagi mavzularda javob bering:
-- Tuproq sho'rlanishi va degradatsiyasi
-- NDVI, NDWI, SI, BSI indekslari ma'nosi
-- Fermerlar uchun agro-maslahatlar
-- Orolbo'yi mintaqasi tuproq muammolari
-- Sug'orish va melioratsiya tavsiylari
-Qisqa, aniq, o'zbek tilida javob bering.`
 
-const INIT_MSG = { role: 'assistant', text: "Salom! Men SoilAgroWatch AI yordamchisiman.\nTuproq holati, indekslar yoki agro-maslahat\nbo'yicha savollaringizga javob beraman 🌱" }
+const DEMO_DB = [
+  {
+    keys: ['salom', 'assalom', 'hello', 'hi ', 'yordam', 'help', 'nima qila', 'what can', 'haqida', 'about'],
+    uz: `👋 Salom! Men **SoilAgroWatch AI** yordamchisiman.
 
-function AiChat() {
+Quyidagi mavzularda yordam bera olaman:
+
+🌿 NDVI — o'simlik qoplami tahlili
+💧 NDWI / SMI — namlik va sug'orish
+🧂 SI / EC / SAR — sho'rlanish darajasi
+🏜️ BSI — yalangoch tuproq va eroziya
+🛰️ Sentinel-2 / GEE — sun'iy yo'ldosh
+🌾 Ekin tavsiylari — paxta, bug'doy...
+☁️ Ob-havo — NASA POWER ma'lumotlari
+⚗️ pH / O'g'it — laboratoriya natijalari
+🚰 Drenaj / Melioratsiya — tuproq tiklash
+
+Savolingizni yozing — javob beraman! 🌱`,
+    en: `👋 Hello! I'm **SoilAgroWatch AI** assistant.
+
+I can help with:
+
+🌿 NDVI — vegetation cover analysis
+💧 NDWI / SMI — moisture & irrigation
+🧂 SI / EC / SAR — soil salinity
+🏜️ BSI — bare soil & erosion risk
+🛰️ Sentinel-2 / GEE — satellite analysis
+🌾 Crop advice — cotton, wheat & more
+☁️ Weather — NASA POWER real-time data
+⚗️ pH / Fertilizer — lab results
+🚰 Drainage / Reclamation — soil restoration
+
+Type your question — I'm ready! 🌱`,
+  },
+  {
+    keys: ['ndvi', "o'simlik", 'vegetatsiya', 'yashil', 'vegetation', 'plant', 'biomass', 'green'],
+    uz: `📡 **NDVI — Vegetatsiya indeksi**
+
+NDVI sun'iy yo'ldosh orqali o'simlik qoplamini o'lchaydi.
+
+**Qiymatlar:**
+• 0.6–0.9 → Zich, sog'lom o'simlik 🟢
+• 0.3–0.5 → O'rtacha o'simlik 🟡
+• 0.1–0.2 → Siyrak o'simlik 🟠
+• < 0.1 → Yalangoch yer yoki quruq 🔴
+
+**Tavsiya:**
+NDVI < 0.3 bo'lsa — sug'orishni oshiring, azot o'g'it qo'llang va ekin navini tekshiring.
+
+Xaritada polygon chizib, real NDVI qiymatini olishingiz mumkin! 🛰️`,
+    en: `📡 **NDVI — Vegetation Index**
+
+NDVI measures vegetation density from Sentinel-2 imagery.
+
+**Value Range:**
+• 0.6–0.9 → Dense, healthy vegetation 🟢
+• 0.3–0.5 → Moderate vegetation 🟡
+• 0.1–0.2 → Sparse vegetation 🟠
+• < 0.1 → Bare soil or dry area 🔴
+
+**Recommendations:**
+NDVI < 0.3 → increase irrigation, apply nitrogen fertilizer, consider drought-tolerant varieties.
+
+Draw a polygon on the map to get real NDVI values from Sentinel-2! 🛰️`,
+  },
+  {
+    keys: ["sho'r", 'shorl', 'ec ', 'sar ', 'tuz', 'salin', 'salt'],
+    uz: `🧂 **Tuproq sho'rlanishi**
+
+**Ko'rsatkichlar:**
+• EC < 2 dS/m → Normal, ko'p ekinlar uchun mos 🟢
+• EC 2–4 dS/m → O'rtacha, chidamli navlar kerak 🟡
+• EC > 4 dS/m → Yuqori, drenaj va yuvish kerak 🔴
+
+• SAR < 9 → Normal sodiy miqdori 🟢
+• SAR 9–18 → Diqqat: tuproq tuzilishi yomonlashadi 🟡
+• SAR > 18 → Gips (CaSO₄) qo'llash zarur 🔴
+
+**Yechim:** Yuvish sug'orish, drenaj tozalash, gips + organik o'g'it.
+
+SI indeksi xaritada sho'rlanishni kosmosdan ko'rsatadi!`,
+    en: `🧂 **Soil Salinity**
+
+**Key Indicators:**
+• EC < 2 dS/m → Normal, suitable for most crops 🟢
+• EC 2–4 dS/m → Moderate, salt-tolerant crops only 🟡
+• EC > 4 dS/m → High salinity, drainage needed 🔴
+
+• SAR < 9 → Normal sodium level 🟢
+• SAR 9–18 → Risk of soil structure damage 🟡
+• SAR > 18 → Gypsum (CaSO₄) application required 🔴
+
+**Solution:** Leaching irrigation, drainage maintenance, gypsum + organic compost.
+
+Check the SI layer on the map for satellite-based salinity mapping!`,
+  },
+  {
+    keys: ['paxta', 'cotton', 'gossypium'],
+    uz: `🌿 **Paxta ekish bo'yicha tavsiyalar**
+
+**Tuproq talablari:**
+• pH: 6.5–8.0 (ideal: 7.0–7.5)
+• EC: < 4 dS/m
+• Chuqurlik: 60–80 sm, yaxshi drenajlangan
+
+**Ekish muddati (Qoraqalpog'iston):**
+• Tuproq harorati ≥ 14°C — aprel oxiri, may boshi
+• Ekish chuqurligi: 3–4 sm
+• Norma: 80–100 kg/ga urug'
+
+**O'g'it:**
+• Azot (N): 200–250 kg/ga
+• Fosfor (P): 100–120 kg/ga
+• Kaliy (K): 80–100 kg/ga
+
+⚠️ EC > 6 dS/m bo'lsa, hosildorlik 40–60% kamayadi!`,
+    en: `🌿 **Cotton Growing Guide**
+
+**Soil Requirements:**
+• pH: 6.5–8.0 (optimal: 7.0–7.5)
+• EC: < 4 dS/m
+• Depth: 60–80 cm, well-drained
+
+**Planting (Karakalpakstan):**
+• Soil temp ≥ 14°C — late April / early May
+• Seeding depth: 3–4 cm
+• Seeding rate: 80–100 kg/ha
+
+**Fertilizer:**
+• N: 200–250 kg/ha
+• P: 100–120 kg/ha
+• K: 80–100 kg/ha
+
+⚠️ Warning: EC > 6 dS/m → cotton yield drops 40–60%!`,
+  },
+  {
+    keys: ["bug'doy", 'wheat', 'don ', "g'alla", 'grain', 'cereal'],
+    uz: `🌾 **Bug'doy yetishtirish bo'yicha tavsiyalar**
+
+**Qulay sharoit:**
+• pH: 6.0–7.5
+• EC: < 6 dS/m (sho'rga o'rta chidamli)
+• Harorat: ekishda 8–15°C, pishishda 20–25°C
+
+**Ekish muddati:**
+• Kuzgi: sentyabr oxiri — oktyabr o'rtasi
+• Bahorgi: mart boshi
+• Norma: 180–220 kg/ga
+
+**Sug'orish:** Jami 4–6 marta (o'stirish, bo'g'im, boshlab ketish, donlash)
+
+**NDVI tavsiya:** Donlash davrida NDVI 0.5–0.7 bo'lishi kerak. Past bo'lsa — oziqlanish muammosi.`,
+    en: `🌾 **Wheat Growing Guide**
+
+**Optimal Conditions:**
+• pH: 6.0–7.5
+• EC: < 6 dS/m (moderate salt tolerance)
+• Temperature: 8–15°C at planting, 20–25°C at harvest
+
+**Planting Dates:**
+• Winter: late September – mid October
+• Spring: early March
+• Seeding rate: 180–220 kg/ha
+
+**Irrigation:** 4–6 cycles total through the season
+
+**NDVI Target:** 0.5–0.7 during grain-fill. Lower values indicate nutrition stress.`,
+  },
+  {
+    keys: ['ob-havo', 'harorat', "yog'in", "qurg'oq", "yomg'ir", 'weather', 'temperature', 'rain', 'drought', 'climate', 'nasa'],
+    uz: `☁️ **Ob-havo va agro-monitoring**
+
+**NASA POWER ma'lumotlari (oxirgi 7 kun):**
+• Harorat: 22–28°C (mavsumga mos)
+• Yog'in: 0–5 mm (qurg'oqchilik ehtimoli bor)
+
+**Agro-tavsiyalar:**
+• Harorat > 35°C → Bug'lanish ortadi, sug'orishni 2× oshiring
+• Yog'in < 10 mm/oy → Tomchilatib sug'orish joriy eting
+• Shamol > 5 m/s → Mineral o'g'it purkashni to'xtating
+
+Dashboard "Tahlillar" bo'limida ob-havo grafigi va 7 kunlik ko'rsatkichlarni ko'rishingiz mumkin.`,
+    en: `☁️ **Weather & Agro-Monitoring**
+
+**NASA POWER Data (last 7 days):**
+• Temperature: 22–28°C (seasonal average)
+• Precipitation: 0–5 mm (drought risk present)
+
+**Agro-Recommendations:**
+• Temp > 35°C → Evaporation doubles, increase irrigation
+• Rain < 10 mm/month → Install drip irrigation
+• Wind > 5 m/s → Stop mineral fertilizer spraying
+
+Check the "Analysis" dashboard for weather charts and 7-day summaries.`,
+  },
+  {
+    keys: ['ndwi', 'namlik', 'moisture', "sug'or", 'irrigation', 'suv '],
+    uz: `💧 **NDWI — Namlik indeksi**
+
+NDWI tuproq va o'simlikdagi namlikni o'lchaydi.
+
+**Qiymatlar:**
+• > 0.3 → Yuqori namlik, suv bosishi xavfi 🔵
+• 0–0.3 → Yetarli namlik 🟢
+• −0.2–0 → O'rtacha quruq, sug'orish tavsiya 🟡
+• < −0.2 → Quruq, zudlik bilan sug'orish kerak 🔴
+
+**Sug'orish normasi (Orolbo'yi):**
+• Paxta: 6000–8000 m³/ga/yil
+• Bug'doy: 3000–4000 m³/ga
+• Tomchilatib: 30–40% suv tejash mumkin
+
+Xaritada NDWI qatlamini tanlab, dalangizni tekshiring.`,
+    en: `💧 **NDWI — Water / Moisture Index**
+
+NDWI measures water content in soil and vegetation.
+
+**Value Range:**
+• > 0.3 → High moisture, flood risk 🔵
+• 0–0.3 → Adequate moisture 🟢
+• -0.2–0 → Moderately dry, irrigation advised 🟡
+• < -0.2 → Dry, urgent irrigation needed 🔴
+
+**Irrigation Norms (Aral Sea Region):**
+• Cotton: 6000–8000 m³/ha/year
+• Wheat: 3000–4000 m³/ha
+• Drip system: saves 30–40% water
+
+Select the NDWI layer on the map to check your field.`,
+  },
+  {
+    keys: ['bsi', 'yalangoch', 'bare soil', 'eroziya', 'erosion', 'degradatsiya', 'degradation'],
+    uz: `🏜️ **BSI — Yalangoch tuproq indeksi**
+
+BSI tuproq yuzasidagi yalangoch qismni o'lchaydi.
+
+**Qiymatlar:**
+• < −0.1 → Yaxshi qoplangan 🟢
+• −0.1–0.1 → Aralash holat 🟡
+• > 0.1 → Ko'p qismi yalangoch 🔴
+• > 0.3 → Kuchli degradatsiya 🆘
+
+**Eroziyaga qarshi choralar:**
+1. Oraliq ekinlar ekish
+2. Mulchalash (5–10 sm)
+3. Shamoldan himoya daraxtzori
+4. Minimum haydash (no-till)
+5. Organik modda qo'shish
+
+BSI qatlamini xaritada tanlab, dalangiz holatini kuzating.`,
+    en: `🏜️ **BSI — Bare Soil Index**
+
+BSI measures proportion of exposed, unprotected soil.
+
+**Value Range:**
+• < -0.1 → Good vegetation cover 🟢
+• -0.1–0.1 → Mixed conditions 🟡
+• > 0.1 → Mostly bare soil 🔴
+• > 0.3 → Severe degradation 🆘
+
+**Anti-Erosion Measures:**
+1. Plant cover crops
+2. Mulching (5–10 cm)
+3. Windbreaks
+4. No-till farming
+5. Add organic compost
+
+Select the BSI layer on the map to monitor your field.`,
+  },
+  {
+    keys: ['ph', 'kislot', 'ishqor', 'ohak', 'acid', 'alkaline', 'lime'],
+    uz: `⚗️ **Tuproq pH darajasi**
+
+**Ko'rsatkichlar:**
+• pH 6.5–7.5 → Aksariyat ekinlar uchun ideal 🟢
+• pH 5.5–6.4 → Kislotali, ohak qo'llash tavsiya 🟡
+• pH 7.6–8.5 → Ishqorli, gips va organik modda 🟡
+• pH > 8.5 → Kuchli ishqorli, melioratsiya kerak 🔴
+
+**Mintaqamiz muammosi:** Orolbo'yida pH 7.8–8.5 keng tarqalgan (ishqorli). Sababi — yuqori karbonat va sho'r suv.
+
+**Yechim:**
+• Gips (CaSO₄): 3–5 t/ga
+• Organik kompost: 10–15 t/ga
+• Kislotali o'g'itlar: ammoniy sulfat`,
+    en: `⚗️ **Soil pH Level**
+
+**Scale:**
+• pH 6.5–7.5 → Ideal for most crops 🟢
+• pH 5.5–6.4 → Acidic, apply lime 🟡
+• pH 7.6–8.5 → Alkaline, add gypsum & organic 🟡
+• pH > 8.5 → Strongly alkaline, reclamation needed 🔴
+
+**Regional Issue:** In the Aral Sea region, pH 7.8–8.5 is common due to high carbonate content and saline water.
+
+**Solutions:**
+• Gypsum (CaSO₄): 3–5 t/ha
+• Organic compost: 10–15 t/ha
+• Acidic fertilizers: ammonium sulfate`,
+  },
+  {
+    keys: ["o'g'it", 'azot', 'fosfor', 'kaliy', 'gumus', 'fertilizer', 'npk', 'nitrogen', 'phosphorus', 'potassium'],
+    uz: `🌱 **O'g'itlash bo'yicha tavsiyalar**
+
+**Asosiy elementlar (N-P-K):**
+• Azot (N) — 150–250 kg/ga: ko'karishni tezlashtiradi
+• Fosfor (P) — 80–120 kg/ga: ildiz va gul rivojida
+• Kaliy (K) — 80–100 kg/ga: hosil sifati
+
+**Gumus miqdori:**
+• < 1% → Juda past — kompost 15+ t/ga 🔴
+• 1–2% → Past — yillik 10 t/ga 🟡
+• 2–3% → Normal 🟢
+• > 3% → Yaxshi 🟢
+
+**Maslahat:** O'g'it berishdan oldin laboratoriya tahlilini o'tkazing — xarajatni 20–30% kamaytiradi.`,
+    en: `🌱 **Fertilization Guide**
+
+**Main Nutrients (N-P-K):**
+• Nitrogen (N) — 150–250 kg/ha: drives vegetative growth
+• Phosphorus (P) — 80–120 kg/ha: roots and flowering
+• Potassium (K) — 80–100 kg/ha: yield quality
+
+**Humus (Organic Matter):**
+• < 1% → Very low — add 15+ t/ha compost 🔴
+• 1–2% → Low — annual 10 t/ha 🟡
+• 2–3% → Normal 🟢
+• > 3% → Good 🟢
+
+**Tip:** Always run a lab test before fertilizing — saves 20–30% on costs.`,
+  },
+  {
+    keys: ['drenaj', 'drainage', 'waterlog', 'kanal', 'ortiq suv', 'botqoq'],
+    uz: `🚰 **Drenaj tizimi bo'yicha maslahat**
+
+**Drenaj zarurmi?**
+• EC > 4 dS/m → Ha, darhol
+• Tuproq 30–50 sm da suv to'planadi → Ha
+• Ekin o'smayapti lekin sug'orish normada → Tekshiring
+
+**Ochiq drenaj:**
+• Kanal chuqurligi: 1.2–1.5 m
+• Eni: 0.8–1.0 m
+• Eğim: 0.001–0.003
+
+**Yopiq drenaj (plastic pipe):**
+• Chuqurlik: 1.0–1.5 m
+• Oraliq: 10–20 m
+• 30–40% suv tejash
+
+**Xarajat:** Ochiq — 500–800 ming so'm/100 m; Yopiq — 2–3 mln so'm/100 m`,
+    en: `🚰 **Drainage System Guide**
+
+**Is Drainage Needed?**
+• EC > 4 dS/m → Yes, immediately
+• Water pools at 30–50 cm depth → Yes
+• Crops failing despite normal irrigation → Check
+
+**Open Drainage:**
+• Depth: 1.2–1.5 m
+• Width: 0.8–1.0 m
+• Slope: 0.001–0.003
+
+**Subsurface (Pipe) Drainage:**
+• Depth: 1.0–1.5 m
+• Spacing: 10–20 m
+• 30–40% water savings
+
+**Cost:** Open — 500–800K sum/100m; Subsurface — 2–3M sum/100m`,
+  },
+  {
+    keys: ['sentinel', 'gee', 'earth engine', "sun'iy yo'ldosh", 'satellite', 'kosmik'],
+    uz: `🛰️ **Sentinel-2 va Google Earth Engine**
+
+Sentinel-2 — Yevropa kosmik agentligining (ESA) bepul dasturi.
+
+**Xususiyatlari:**
+• Qayta tashrif: har 5 kun
+• Piksel: 10 m
+• 13 ta spektral kanal
+• Ma'lumotlar: 2015-yildan bepul
+
+**Bizning tizim:**
+1. Xaritada polygon chizasiz
+2. GEE backend Sentinel-2 rasmini oladi
+3. NDVI, NDWI, SI, BSI, NDRE, MSAVI, SMI hisoblanadi
+4. Natijalar panel va xaritada ko'rsatiladi
+
+"Dala chizish" rejimida sinab ko'ring!`,
+    en: `🛰️ **Sentinel-2 & Google Earth Engine**
+
+Sentinel-2 is a free satellite program by the European Space Agency (ESA).
+
+**Key Features:**
+• Revisit time: every 5 days
+• Resolution: 10 m/pixel
+• 13 spectral bands
+• Free data since 2015
+
+**Our System Flow:**
+1. Draw a polygon on the map
+2. GEE backend fetches Sentinel-2 images
+3. Calculates NDVI, NDWI, SI, BSI, NDRE, MSAVI, SMI
+4. Results shown in panel and on the map
+
+Try it in "Field Drawing" mode!`,
+  },
+  {
+    keys: ['meliorat', 'qayta tikl', 'yuvish', 'reclaim', 'rehabilitat'],
+    uz: `🔄 **Tuproqni qayta tiklash (Melioratsiya)**
+
+**Yuvish sug'orish:**
+• Maqsad: tuz miqdorini kamaytirish
+• Norma: 1500–3000 m³/ga
+• Muddat: ekin ekishdan 1–2 oy oldin
+• Samara: EC 30–50% kamayadi
+
+**Bosqichlar:**
+1. Tekislash ishlari (laser nivelir)
+2. Yuvish sug'orish (2–3 marta)
+3. Gips qo'llash (4–6 t/ga)
+4. Organik modda (10–15 t/ga kompost)
+5. Shudgor + aralash ekinlar
+
+**Natija:** 2–3 mavsumda sezilarli yaxshilanish. NDVI monitoring bilan kuzatib boring.`,
+    en: `🔄 **Soil Reclamation (Melioration)**
+
+**Leaching Irrigation:**
+• Goal: reduce salt content
+• Rate: 1500–3000 m³/ha
+• Timing: 1–2 months before planting
+• Effect: EC drops 30–50%
+
+**Step-by-Step:**
+1. Land leveling (laser leveler)
+2. Leaching irrigation (2–3 rounds)
+3. Gypsum application (4–6 t/ha)
+4. Organic matter (10–15 t/ha compost)
+5. Deep tillage + mixed cropping
+
+**Timeline:** Significant improvement in 2–3 seasons. Monitor with NDVI.`,
+  },
+  {
+    keys: ['orolbo', 'qoraqalpog', 'nukus', 'aral', 'mintaqa', 'region'],
+    uz: `🌍 **Orolbo'yi mintaqasi — tuproq muammolari**
+
+**Asosiy muammolar:**
+1. Sho'rlanish — EC 8–15 dS/m (juda yuqori)
+2. Deflatsiya — tuz-chang bo'ronlari
+3. Suv tanqisligi — Amudaryo suvi kamaydi
+4. Organik modda — < 0.8% (juda past)
+5. NDVI: 2015–2024 yillarda 12–18% kamaygan
+
+**Ijobiy tomonlar:**
+• UN va xalqaro loyihalar yordam bermoqda
+• Sho'rga chidamli yangi navlar kiritilmoqda
+• Tomchi sug'orish jadal joriy etilmoqda
+
+Bizning tizim aynan shu mintaqa uchun optimallashtirilgan! 🌱`,
+    en: `🌍 **Aral Sea Region — Soil Challenges**
+
+**Main Problems:**
+1. Salinity — EC 8–15 dS/m (very high)
+2. Deflation — salt-dust storms
+3. Water scarcity — Amudarya flow decreased 80%
+4. Organic matter — < 0.8% (critically low)
+5. NDVI dropped 12–18% from 2015–2024
+
+**Positive Developments:**
+• UN & international projects providing support
+• New salt-tolerant crop varieties introduced
+• Drip irrigation rapidly expanding
+
+Our system is specifically optimized for this region! 🌱`,
+  },
+  {
+    keys: ['laboratoriya', 'lab tahlil', 'namuna', 'laboratory', 'soil test', 'sample', 'analiz'],
+    uz: `🔬 **Laboratoriya tahlili bo'yicha maslahat**
+
+**Tuproq namunasi olish:**
+• Chuqurlik: 0–30 sm va 30–60 sm (alohida)
+• Maydon: har 5 gektarga 1 ta aralash namuna
+• Vaqt: ekishdan 1 oy oldin yoki hosildan keyin
+
+**Asosiy ko'rsatkichlar:**
+• pH → Me'yor: 6.5–7.5
+• EC → Me'yor: < 2 dS/m
+• SAR → Me'yor: < 9
+• Gumus → Me'yor: > 2%
+
+**Bizning xizmat:** "Laboratoriya" bo'limida natijangizni ko'rishingiz mumkin.
+
+**Narx:** ~250,000 so'm/namuna (hamkor laboratoriyalar)`,
+    en: `🔬 **Laboratory Soil Testing**
+
+**Sampling Protocol:**
+• Depth: 0–30 cm and 30–60 cm (separate)
+• Rate: 1 composite sample per 5 hectares
+• Timing: 1 month before planting or post-harvest
+
+**Key Parameters:**
+• pH → Normal: 6.5–7.5
+• EC → Normal: < 2 dS/m
+• SAR → Normal: < 9
+• Humus → Normal: > 2%
+
+**Our Service:** View results in the "Lab Analysis" section. Partner labs provide full testing.
+
+**Cost:** ~250,000 UZS/sample`,
+  },
+  {
+    keys: ['ndre', 'xlorofil', 'chlorophyll', "o'simlik sog'", 'red edge', 'plant health'],
+    uz: `🩺 **NDRE — O'simlik sog'lig'i indeksi**
+
+NDRE xlorofil miqdorini o'lchaydi (NDVI dan aniqroq).
+
+**Qiymatlar:**
+• > 0.4 → Sog'lom, xlorofil normal 🟢
+• 0.2–0.4 → O'rtacha, oziqlanish muammosi mumkin 🟡
+• 0.1–0.2 → Zaif — azot yoki temir yetishmovchiligi 🟠
+• < 0.1 → Kasallik yoki kuchli stress 🔴
+
+**NDVI bilan farqi:**
+• NDVI — umumiy biomassa
+• NDRE — xlorofil kontsentratsiyasi (kasallikni ertaroq aniqlaydi)
+
+**Tavsiya:** NDRE past bo'lsa — azot o'g'it va temir xelat (Fe-EDTA) qo'llang.`,
+    en: `🩺 **NDRE — Plant Health Index**
+
+NDRE measures chlorophyll content (more sensitive than NDVI).
+
+**Value Range:**
+• > 0.4 → Healthy, normal chlorophyll 🟢
+• 0.2–0.4 → Moderate, possible nutrition issues 🟡
+• 0.1–0.2 → Low — N or Fe deficiency 🟠
+• < 0.1 → Disease or severe stress 🔴
+
+**vs NDVI:**
+• NDVI — overall biomass
+• NDRE — chlorophyll concentration (detects stress earlier)
+
+**Action:** Low NDRE → apply nitrogen fertilizer, iron chelate (Fe-EDTA), inspect for disease.`,
+  },
+  {
+    keys: ['msavi', "tuproq ta'sir", 'soil adjusted', 'adjusted vegetation'],
+    uz: `🏔️ **MSAVI — Tuproq kompensatsiyalangan indeks**
+
+MSAVI siyrak o'simlik hududlarda NDVI xatosini kamaytiradi.
+
+**Qachon MSAVI ishlatiladi:**
+• Bahor boshida (o'simlik 30% dan kam)
+• Qurg'oqlik davrida
+• Degradatsiya tendentsiyasini o'lchashda
+
+**Qiymatlar:**
+• > 0.4 → Yaxshi qoplam 🟢
+• 0.2–0.4 → O'rtacha 🟡
+• 0.1–0.2 → Siyrak 🟠
+• < 0.1 → Deyarli yalangoch 🔴
+
+NDVI + MSAVI birga tahlil qilib, degradatsiya tendentsiyasini aniqroq ko'ring.`,
+    en: `🏔️ **MSAVI — Modified Soil-Adjusted Vegetation Index**
+
+MSAVI corrects NDVI errors in sparsely vegetated areas.
+
+**When to Use:**
+• Early spring (< 30% plant cover)
+• During drought periods
+• For precise degradation monitoring
+
+**Value Range:**
+• > 0.4 → Good vegetation cover 🟢
+• 0.2–0.4 → Moderate 🟡
+• 0.1–0.2 → Sparse 🟠
+• < 0.1 → Nearly bare 🔴
+
+Analyze NDVI + MSAVI together for clearer degradation trend detection.`,
+  },
+  {
+    keys: ['smi', 'tuproq namligi', 'soil moisture'],
+    uz: `💦 **SMI — Tuproq namligi indeksi**
+
+SMI B8A/B11 nisbati asosida tuproq namligini o'lchaydi.
+
+**Qiymatlar:**
+• > 0.6 → Nam, sug'orish kerak emas 🔵
+• 0.4–0.6 → Normal namlik 🟢
+• 0.2–0.4 → Quruqroq, kuzatish zarur 🟡
+• < 0.2 → Quruq, sug'orish kerak 🔴
+
+**NDWI bilan farqi:**
+• NDWI — suv va o'simlikdagi namlik
+• SMI — asosan tuproq yuzasidagi namlik
+
+**Amaliy foydalanish:**
+• Sug'orish jadvalini optimallashtirish
+• Qurg'oqchilik erta signali olish
+• Tomchi sug'orish nazorati`,
+    en: `💦 **SMI — Soil Moisture Index**
+
+SMI uses B8A/B11 NIR-SWIR ratio to estimate surface soil moisture.
+
+**Value Range:**
+• > 0.6 → Wet, no irrigation needed 🔵
+• 0.4–0.6 → Normal moisture 🟢
+• 0.2–0.4 → Drying, monitor closely 🟡
+• < 0.2 → Dry, irrigation required 🔴
+
+**vs NDWI:**
+• NDWI — water in vegetation + soil
+• SMI — primarily surface soil moisture
+
+**Practical Uses:**
+• Optimize irrigation scheduling
+• Early drought warning system
+• Monitor drip irrigation effectiveness`,
+  },
+  {
+    keys: ['tejam', 'tomchi', 'drip', 'suv sarfi', 'water saving', 'efficient irrigat'],
+    uz: `💦 **Tejamli sug'orish tizimlari**
+
+**Tomchilatib sug'orish afzalliklari:**
+• Suv tejalishi: 35–50%
+• Hosildorlik oshishi: 20–30%
+• Sho'rlanish kamayishi
+• Fertigation (suvga o'g'it qo'shib berish)
+
+**Narx (taxminiy):**
+• Oddiy tizim: 3–5 mln so'm/ga
+• Avtomatlashgan: 8–12 mln so'm/ga
+• Amortizatsiya: 3–5 yil
+
+**Davlat dasturi:** O'zbekiston tomchi sug'orish uchun 50% subsidiya bermoqda.
+
+NDWI + SMI monitoring bilan suv sarfini 40% kamaytirish mumkin!`,
+    en: `💦 **Water-Efficient Irrigation**
+
+**Drip Irrigation Benefits:**
+• Water savings: 35–50%
+• Yield increase: 20–30%
+• Reduced salinity buildup
+• Fertigation (fertilizer via irrigation water)
+
+**Cost Estimates:**
+• Basic system: 3–5M sum/ha
+• Automated: 8–12M sum/ha
+• Payback period: 3–5 years
+
+**Government Support:** Uzbekistan offers 50% subsidies for drip irrigation.
+
+Combined with NDWI + SMI monitoring, reduce water use by up to 40%!`,
+  },
+  {
+    keys: ['pdf', 'hisobot', 'report', 'export', 'yuklab ol'],
+    uz: `📄 **PDF Hisobot yuklab olish**
+
+GEE Sentinel-2 tahlilidan keyin PDF hisobot tayyorlanadi.
+
+**Hisobotda nima bor:**
+• Polygon maydoni va koordinatalari
+• NDVI, NDWI, SI, BSI, NDRE, MSAVI, SMI qiymatlari
+• Har bir indeks bo'yicha status va tavsiya
+• Xavf darajasi baholash
+• Tahlil sanasi va ma'lumot manbai
+
+**Qanday olish:**
+1. "Dala chizish" rejimiga o'ting
+2. Polygon chizing
+3. GEE tahlili tugagach
+4. "PDF Yuklab olish" tugmasini bosing`,
+    en: `📄 **PDF Report Download**
+
+After GEE Sentinel-2 analysis, a full PDF report is generated.
+
+**Report Contents:**
+• Polygon area and coordinates
+• NDVI, NDWI, SI, BSI, NDRE, MSAVI, SMI values
+• Status and recommendations per index
+• Risk level assessment
+• Analysis date and data source
+
+**How to Get It:**
+1. Switch to "Field Drawing" mode
+2. Draw a polygon on the map
+3. Wait for GEE analysis to complete
+4. Click "Download PDF" button`,
+  },
+  {
+    keys: ['si indeks', 'si qiymat', 'sho\'rlanish indeks', 'si layer'],
+    uz: `🧪 **SI — Sho'rlanish indeksi (Sentinel-2)**
+
+SI = √(Band4 × Band3) — qizil va yashil kanallar asosida.
+
+**Qiymatlar (GEE):**
+• SI < 0.05 → Sho'rlanmagan 🟢
+• SI 0.05–0.15 → O'rtacha sho'r 🟡
+• SI 0.15–0.25 → Yuqori sho'r 🟠
+• SI > 0.25 → Juda yuqori, ekin o'smaydi 🔴
+
+**SI va EC farqi:**
+• SI — keng maydon uchun (kosmosdan, bepul)
+• EC — laboratoriya aniq tahlili
+
+**Tavsiya:** SI > 0.2 bo'lsa, darhol EC va SAR ni laboratoriyada tekshiring.`,
+    en: `🧪 **SI — Salinity Index (Sentinel-2)**
+
+SI = √(Band4 × Band3) — computed from red and green bands.
+
+**Value Range (GEE):**
+• SI < 0.05 → No salinity 🟢
+• SI 0.05–0.15 → Moderate salt 🟡
+• SI 0.15–0.25 → High salinity 🟠
+• SI > 0.25 → Very high, crops fail 🔴
+
+**SI vs EC:**
+• SI — large-area remote sensing (free, fast)
+• EC — precise lab measurement (definitive)
+
+**Recommendation:** SI > 0.2 → immediately test EC and SAR in a laboratory.`,
+  },
+]
+
+function matchResponse(input, lang) {
+  const lower = input.toLowerCase()
+  for (const item of DEMO_DB) {
+    if (item.keys.some(k => lower.includes(k))) {
+      return item[lang] ?? item.uz
+    }
+  }
+  return lang === 'en'
+    ? `I don't have specific info on that topic. Try asking about:\n\n🌿 NDVI, NDWI, BSI, SI, NDRE, MSAVI, SMI\n🌾 Cotton or wheat farming\n🧂 Soil salinity or pH\n☁️ Weather and irrigation\n🛰️ Sentinel-2 satellite data\n\nOr type "help" for a full topic list!`
+    : `Bu mavzu bo'yicha ma'lumot topa olmadim. Quyidagilar haqida so'rang:\n\n🌿 NDVI, NDWI, BSI, SI, NDRE, MSAVI, SMI\n🌾 Paxta yoki bug'doy ekish\n🧂 Sho'rlanish yoki pH\n☁️ Ob-havo va sug'orish\n🛰️ Sentinel-2 sun'iy yo'ldosh\n\nYoki "salom" yozing — to'liq ro'yxatni ko'rasiz!`
+}
+
+function AiChat({ lang, setLang }) {
   const [open,     setOpen]     = useState(false)
-  const [messages, setMessages] = useState([INIT_MSG])
+  const [messages, setMessages] = useState([])
   const [input,    setInput]    = useState('')
   const [loading,  setLoading]  = useState(false)
   const bottomRef = useRef(null)
+
+  const initText = l => l === 'uz'
+    ? "Salom! Men SoilAgroWatch AI yordamchisiman.\nTuproq, indekslar yoki agro-maslahat bo'yicha\nsavolingizni yozing 🌱"
+    : "Hello! I'm SoilAgroWatch AI assistant.\nAsk me about soil indices, crops,\nweather or agronomy! 🌱"
+
+  useEffect(() => {
+    setMessages([{ role: 'assistant', text: initText('uz') }])
+  }, []) // eslint-disable-line
+
+  useEffect(() => {
+    setMessages([{ role: 'assistant', text: initText(lang) }])
+    setInput('')
+  }, [lang]) // eslint-disable-line
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -1587,29 +2329,10 @@ function AiChat() {
     setInput('')
     setMessages(prev => [...prev, { role: 'user', text }])
     setLoading(true)
-    try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type':  'application/json',
-          'x-api-key':     import.meta.env.VITE_ANTHROPIC_API_KEY ?? '',
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-request-in-browser': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          system: SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: text }],
-        }),
-      })
-      if (!res.ok) throw new Error('API ' + res.status)
-      const data = await res.json()
-      const reply = data.content?.[0]?.text ?? 'Javob olishda xato'
-      setMessages(prev => [...prev, { role: 'assistant', text: reply }])
-    } catch {
-      setMessages(prev => [...prev, { role: 'assistant', text: 'Uzr, qayta urinib ko\'ring' }])
-    }
+    const delay = 1500 + Math.random() * 1000
+    await new Promise(r => setTimeout(r, delay))
+    const reply = matchResponse(text, lang)
+    setMessages(prev => [...prev, { role: 'assistant', text: reply }])
     setLoading(false)
   }
 
@@ -1627,7 +2350,17 @@ function AiChat() {
         <div className="chat-window">
           <div className="chat-header">
             <span>🌱 SoilAgroWatch AI</span>
-            <button className="chat-close" onClick={() => setOpen(false)}>✕</button>
+            <div className="chat-header-right">
+              <button
+                className={`chat-lang-btn${lang === 'uz' ? ' chat-lang-btn--active' : ''}`}
+                onClick={() => setLang('uz')}
+              >UZ</button>
+              <button
+                className={`chat-lang-btn${lang === 'en' ? ' chat-lang-btn--active' : ''}`}
+                onClick={() => setLang('en')}
+              >EN</button>
+              <button className="chat-close" onClick={() => setOpen(false)}>✕</button>
+            </div>
           </div>
 
           <div className="chat-messages">
@@ -1640,7 +2373,7 @@ function AiChat() {
             ))}
             {loading && (
               <div className="chat-bubble chat-bubble--assistant chat-bubble--loading">
-                ⏳ Javob tayyorlanmoqda...
+                <span className="chat-dots"><span/><span/><span/></span>
               </div>
             )}
             <div ref={bottomRef}/>
@@ -1649,7 +2382,7 @@ function AiChat() {
           <div className="chat-input-row">
             <input
               className="chat-input"
-              placeholder="Savol bering..."
+              placeholder={lang === 'en' ? 'Ask a question...' : 'Savol bering...'}
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && send()}
@@ -1658,7 +2391,7 @@ function AiChat() {
               className="chat-send"
               onClick={send}
               disabled={loading || !input.trim()}
-              title="Yuborish"
+              title={lang === 'uz' ? 'Yuborish' : 'Send'}
             >➤</button>
           </div>
         </div>

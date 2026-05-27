@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { t } from '../i18n'
 import './Sidebar.css'
 
 const TOOLTIPS = {
@@ -11,37 +12,47 @@ const TOOLTIPS = {
   smi:   "Tuproq namligi indeksi. Yuqori = nam, past = quruq.",
 }
 
-const TUPROQ_INDICES = [
-  { id: 'umumiy', label: 'Umumiy', icon: 'ti-chart-area'           },
-  { id: 'ndvi',   label: 'NDVI',   icon: 'ti-leaf'                 },
-  { id: 'ndwi',   label: 'NDWI',   icon: 'ti-droplet'              },
-  { id: 'si',     label: 'SI',     icon: 'ti-wave-sine'            },
-  { id: 'bsi',    label: 'BSI',    icon: 'ti-mountain'             },
-  { id: 'ndre',   label: 'NDRE',   icon: 'ti-heart-rate-monitor',  badge: 'GEE' },
-  { id: 'msavi',  label: 'MSAVI',  icon: 'ti-layers-difference',   badge: 'GEE' },
-  { id: 'smi',    label: 'SMI',    icon: 'ti-droplets',            badge: 'GEE' },
+// id → translation key mapping
+const NAV_TOP = [
+  { id: 'dashboard', key: 'dashboard', icon: 'ti-layout-dashboard' },
+  { id: 'xarita',    key: 'map',       icon: 'ti-map', badge: 'active' },
 ]
 
-const NAV_TOP = [
-  { id: 'dashboard', label: 'Dashboard', icon: 'ti-layout-dashboard' },
-  { id: 'xarita',    label: 'Xarita',    icon: 'ti-map', badge: 'Faol' },
+const TUPROQ_INDICES = [
+  { id: 'umumiy', key: 'general', icon: 'ti-chart-area'          },
+  { id: 'ndvi',   label: 'NDVI',  icon: 'ti-leaf'                },
+  { id: 'ndwi',   label: 'NDWI',  icon: 'ti-droplet'             },
+  { id: 'si',     label: 'SI',    icon: 'ti-wave-sine'           },
+  { id: 'bsi',    label: 'BSI',   icon: 'ti-mountain'            },
+  { id: 'ndre',   label: 'NDRE',  icon: 'ti-heart-rate-monitor', badge: 'GEE' },
+  { id: 'msavi',  label: 'MSAVI', icon: 'ti-layers-difference',  badge: 'GEE' },
+  { id: 'smi',    label: 'SMI',   icon: 'ti-droplets',           badge: 'GEE' },
 ]
 
 const NAV_TOOLS = [
-  { id: 'dala',         label: 'Dala chizish',     icon: 'ti-pencil'      },
-  { id: 'ai-detect',    label: 'AI aniqlash',       icon: 'ti-sparkles',   badge: 'AI'   },
-  { id: 'fayl-yuklash', label: 'Fayl yuklash',     icon: 'ti-file-upload' },
-  { id: 'laboratoriya', label: 'Laboratoriya',     icon: 'ti-flask'       },
-  { id: 'obhavo',       label: 'Ob-havo',           icon: 'ti-cloud'       },
-  { id: 'ai-chat',      label: 'AI Chat',           icon: 'ti-robot',      badge: 'Beta' },
+  { id: 'dala',         key: 'drawField',  icon: 'ti-pencil'      },
+  { id: 'ai-detect',    key: 'aiDetect',   icon: 'ti-sparkles',   badge: 'AI'   },
+  { id: 'fayl-yuklash', key: 'uploadFile', icon: 'ti-file-upload' },
+  { id: 'laboratoriya', key: 'laboratory', icon: 'ti-flask'       },
+  { id: 'obhavo',       key: 'weather',    icon: 'ti-cloud'       },
+  { id: 'ai-chat',      key: 'aiChat',     icon: 'ti-robot',      badge: 'Beta' },
 ]
 
 const BOTTOM = [
-  { id: 'sozlamalar', label: 'Sozlamalar', icon: 'ti-settings' },
-  { id: 'profil',     label: 'Profil',     icon: 'ti-user'     },
+  { id: 'sozlamalar', key: 'settings', icon: 'ti-settings' },
+  { id: 'profil',     key: 'profile',  icon: 'ti-user'     },
 ]
 
-export default function Sidebar({ activeTab, onTabChange }) {
+function itemLabel(lang, item) {
+  return item.key ? t(lang, item.key) : item.label
+}
+
+function badgeText(lang, badge) {
+  if (badge === 'active') return t(lang, 'active')
+  return badge
+}
+
+export default function Sidebar({ activeTab, onTabChange, lang, setLang }) {
   const [collapsed, setCollapsed] = useState(false)
   const isSubActive = TUPROQ_INDICES.some(i => i.id === activeTab)
   const [dropOpen, setDropOpen] = useState(() => isSubActive)
@@ -51,10 +62,7 @@ export default function Sidebar({ activeTab, onTabChange }) {
     const rect = e.currentTarget.getBoundingClientRect()
     setTip({ visible: true, text, x: rect.right + 10, y: rect.top + rect.height / 2 })
   }
-
-  function hideTip() {
-    setTip(s => ({ ...s, visible: false }))
-  }
+  function hideTip() { setTip(s => ({ ...s, visible: false })) }
 
   function handleSubItem(id) {
     onTabChange(id)
@@ -74,53 +82,67 @@ export default function Sidebar({ activeTab, onTabChange }) {
         <button
           className="sb-collapse-btn"
           onClick={() => setCollapsed(c => !c)}
-          title={collapsed ? 'Kengaytirish' : "Yig'ish"}
+          title={collapsed ? t(lang, 'expand') : t(lang, 'collapse')}
         >
           <i className={`ti ${collapsed ? 'ti-chevron-right' : 'ti-chevron-left'}`} />
         </button>
       </div>
 
+      {/* ── Language switcher ── */}
+      {!collapsed && (
+        <div className="sb-lang-bar">
+          <button
+            className={`sb-lang-btn${lang === 'uz' ? ' sb-lang-btn--active' : ''}`}
+            onClick={() => setLang('uz')}
+          >UZ</button>
+          <button
+            className={`sb-lang-btn${lang === 'en' ? ' sb-lang-btn--active' : ''}`}
+            onClick={() => setLang('en')}
+          >EN</button>
+        </div>
+      )}
+
       {/* ── Main nav ── */}
       <nav className="sb-nav">
 
         {/* ASOSIY */}
-        {!collapsed && <div className="sb-group-title">ASOSIY</div>}
+        {!collapsed && <div className="sb-group-title">{t(lang, 'groupMain')}</div>}
         {NAV_TOP.map(item => (
           <button
             key={item.id}
             className={`sb-item${activeTab === item.id ? ' sb-item--active' : ''}`}
             onClick={() => onTabChange(item.id)}
-            title={collapsed ? item.label : undefined}
+            title={collapsed ? itemLabel(lang, item) : undefined}
           >
             <i className={`ti ${item.icon} sb-item-icon`} />
             {!collapsed && (
               <>
-                <span className="sb-item-label">{item.label}</span>
-                {item.badge && <span className="sb-badge">{item.badge}</span>}
+                <span className="sb-item-label">{itemLabel(lang, item)}</span>
+                {item.badge && (
+                  <span className="sb-badge">{badgeText(lang, item.badge)}</span>
+                )}
               </>
             )}
           </button>
         ))}
 
         {/* TUPROQ TAHLILI — DROPDOWN */}
-        {!collapsed && <div className="sb-group-title" style={{ marginTop: 6 }}>TAHLIL</div>}
+        {!collapsed && <div className="sb-group-title" style={{ marginTop: 6 }}>{t(lang, 'groupAnalysis')}</div>}
 
-        {/* Dropdown trigger */}
         <button
           className={`sb-item sb-dropdown-trigger${isSubActive ? ' sb-item--active' : ''}`}
           onClick={() => collapsed ? onTabChange('umumiy') : setDropOpen(o => !o)}
-          title={collapsed ? 'Tuproq tahlili' : undefined}
+          title={collapsed ? t(lang, 'soilAnalysis') : undefined}
         >
           <i className="ti ti-layers-intersect sb-item-icon" />
           {!collapsed && (
             <>
-              <span className="sb-item-label">Tuproq tahlili</span>
+              <span className="sb-item-label">{t(lang, 'soilAnalysis')}</span>
               <i className={`ti ti-chevron-down sb-drop-chevron${dropOpen ? ' sb-drop-chevron--open' : ''}`} />
             </>
           )}
         </button>
 
-        {/* Sub-items */}
         {!collapsed && (
           <div className={`sb-sub-list${dropOpen ? ' sb-sub-list--open' : ''}`}>
             {TUPROQ_INDICES.map(item => (
@@ -130,7 +152,7 @@ export default function Sidebar({ activeTab, onTabChange }) {
                 onClick={() => handleSubItem(item.id)}
               >
                 <i className={`ti ${item.icon} sb-item-icon`} />
-                <span className="sb-item-label">{item.label}</span>
+                <span className="sb-item-label">{itemLabel(lang, item)}</span>
                 {TOOLTIPS[item.id] && (
                   <span
                     className="sb-tip-wrap"
@@ -150,18 +172,18 @@ export default function Sidebar({ activeTab, onTabChange }) {
         )}
 
         {/* VOSITALAR */}
-        {!collapsed && <div className="sb-group-title" style={{ marginTop: 6 }}>VOSITALAR</div>}
+        {!collapsed && <div className="sb-group-title" style={{ marginTop: 6 }}>{t(lang, 'groupTools')}</div>}
         {NAV_TOOLS.map(item => (
           <button
             key={item.id}
             className={`sb-item${activeTab === item.id ? ' sb-item--active' : ''}`}
             onClick={() => onTabChange(item.id)}
-            title={collapsed ? item.label : undefined}
+            title={collapsed ? itemLabel(lang, item) : undefined}
           >
             <i className={`ti ${item.icon} sb-item-icon`} />
             {!collapsed && (
               <>
-                <span className="sb-item-label">{item.label}</span>
+                <span className="sb-item-label">{itemLabel(lang, item)}</span>
                 {item.badge && <span className="sb-badge">{item.badge}</span>}
               </>
             )}
@@ -177,20 +199,17 @@ export default function Sidebar({ activeTab, onTabChange }) {
             key={item.id}
             className={`sb-item${activeTab === item.id ? ' sb-item--active' : ''}`}
             onClick={() => onTabChange(item.id)}
-            title={collapsed ? item.label : undefined}
+            title={collapsed ? itemLabel(lang, item) : undefined}
           >
             <i className={`ti ${item.icon} sb-item-icon`} />
-            {!collapsed && <span className="sb-item-label">{item.label}</span>}
+            {!collapsed && <span className="sb-item-label">{itemLabel(lang, item)}</span>}
           </button>
         ))}
       </div>
 
-      {/* ── Fixed tooltip (overflow-dan chiqib ketmaslik uchun) ── */}
+      {/* ── Fixed tooltip ── */}
       {tip.visible && (
-        <div
-          className="sb-tip-fixed"
-          style={{ left: tip.x, top: tip.y }}
-        >
+        <div className="sb-tip-fixed" style={{ left: tip.x, top: tip.y }}>
           {tip.text}
         </div>
       )}

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import L from 'leaflet'
 import shp from 'shpjs'
 import { kml } from '@tmcw/togeojson'
+import { t } from '../i18n'
 import './FieldUploadWizard.css'
 
 // ─── Pure JS geodesic area (m² → ha) ─────────────
@@ -41,7 +42,8 @@ function normaliseFc(raw) {
 }
 
 // ─── Main component ───────────────────────────────
-export default function FieldUploadWizard({ onClose, onConfirm }) {
+export default function FieldUploadWizard({ onClose, onConfirm, lang }) {
+  const activeLang = lang ?? 'uz'
   const [step,       setStep]       = useState(1)
   const [fileName,   setFileName]   = useState('')
   const [geojson,    setGeojson]    = useState(null)
@@ -167,14 +169,14 @@ export default function FieldUploadWizard({ onClose, onConfirm }) {
         <div className="wiz-header">
           <div className="wiz-title">
             <span className="wiz-title-icon">📁</span>
-            Dala faylini yuklash
+            {t(activeLang, 'uploadFileTitle')}
           </div>
           <button className="wiz-close" onClick={onClose}>✕</button>
         </div>
 
         {/* ── Step bar ── */}
         <div className="wiz-steps">
-          {['Yuklash', "Ko'rib chiqish", 'Tasdiqlash'].map((label, i) => {
+          {[t(activeLang, 'stepUpload'), t(activeLang, 'stepPreview'), t(activeLang, 'stepConfirm')].map((label, i) => {
             const n = i + 1
             return (
               <div key={n} className={`wiz-step${step > n ? ' wiz-step--past' : step === n ? ' wiz-step--active' : ''}`}>
@@ -201,7 +203,7 @@ export default function FieldUploadWizard({ onClose, onConfirm }) {
                 {parsing ? (
                   <>
                     <div className="wiz-spinner"/>
-                    <span className="wiz-drop-title">Fayl tahlillanmoqda...</span>
+                    <span className="wiz-drop-title">{t(activeLang, 'analyzingFile')}</span>
                   </>
                 ) : (
                   <>
@@ -214,11 +216,11 @@ export default function FieldUploadWizard({ onClose, onConfirm }) {
                       </svg>
                     </div>
                     <div className="wiz-drop-title">
-                      {isDragging ? 'Qo\'yib yuboring...' : "Faylni bu yerga tashlang"}
+                      {isDragging ? t(activeLang, 'releaseFile') : t(activeLang, 'dropFile')}
                     </div>
-                    <div className="wiz-drop-sub">yoki</div>
+                    <div className="wiz-drop-sub">{t(activeLang, 'orLabel')}</div>
                     <label className="wiz-drop-btn">
-                      Fayl tanlash
+                      {t(activeLang, 'selectFile')}
                       <input
                         type="file"
                         accept=".geojson,.json,.shp,.zip,.kml"
@@ -244,11 +246,11 @@ export default function FieldUploadWizard({ onClose, onConfirm }) {
               <div className="wiz-stats">
                 <div className="wiz-stat">
                   <span className="wiz-stat-val">{polyCount}</span>
-                  <span className="wiz-stat-lbl">Polygon</span>
+                  <span className="wiz-stat-lbl">{t(activeLang, 'polygonLabel')}</span>
                 </div>
                 <div className="wiz-stat">
                   <span className="wiz-stat-val">{totalHa.toFixed(2)}</span>
-                  <span className="wiz-stat-lbl">Gektar</span>
+                  <span className="wiz-stat-lbl">{t(activeLang, 'hectareLabel')}</span>
                 </div>
                 <div className="wiz-stat wiz-stat--file">
                   <span className="wiz-stat-file-name">📄 {fileName}</span>
@@ -257,10 +259,10 @@ export default function FieldUploadWizard({ onClose, onConfirm }) {
 
               <div className="wiz-preview-actions">
                 <button className="wiz-btn wiz-btn--ghost" onClick={resetToStep1}>
-                  ◀ Qayta yuklash
+                  ◀ {t(activeLang, 'reupload')}
                 </button>
                 <button className="wiz-btn wiz-btn--primary" onClick={handleConfirm}>
-                  Bu to'g'ri →
+                  {t(activeLang, 'correctBtn')} →
                 </button>
               </div>
             </div>
@@ -270,10 +272,12 @@ export default function FieldUploadWizard({ onClose, onConfirm }) {
           {step === 3 && (
             <div className="wiz-success">
               <div className="wiz-success-icon">✅</div>
-              <div className="wiz-success-title">Muvaffaqiyatli!</div>
+              <div className="wiz-success-title">{t(activeLang, 'successTitle')}</div>
               <div className="wiz-success-sub">
-                {polyCount} polygon Dala xaritasiga qo'shildi.<br/>
-                GEE tahlil boshlanmoqda...
+                {activeLang === 'en'
+                  ? <>{polyCount} polygon added to Field map.<br/>Starting GEE analysis...</>
+                  : <>{polyCount} polygon Dala xaritasiga qo'shildi.<br/>GEE tahlil boshlanmoqda...</>
+                }
               </div>
               <div className="wiz-spinner wiz-spinner--large"/>
             </div>

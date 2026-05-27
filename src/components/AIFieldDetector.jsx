@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import L from 'leaflet'
+import { t } from '../i18n'
 import './AIFieldDetector.css'
 
-export default function AIFieldDetector({ instanceRef, onClose, onConfirm }) {
+export default function AIFieldDetector({ instanceRef, onClose, onConfirm, lang }) {
   const [step,     setStep]     = useState('input') // input | loading | result | notfound
   const [lat,      setLat]      = useState('')
   const [lng,      setLng]      = useState('')
@@ -10,6 +11,7 @@ export default function AIFieldDetector({ instanceRef, onClose, onConfirm }) {
   const [error,    setError]    = useState('')
   const [result,   setResult]   = useState(null)
   const previewRef = useRef(null)
+  const activeLang = lang ?? 'uz'
 
   function clearPreview() {
     if (previewRef.current && instanceRef?.current) {
@@ -18,10 +20,8 @@ export default function AIFieldDetector({ instanceRef, onClose, onConfirm }) {
     }
   }
 
-  // Cleanup preview layer on unmount
   useEffect(() => () => clearPreview(), []) // eslint-disable-line
 
-  // Escape closes modal
   useEffect(() => {
     const fn = e => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', fn)
@@ -29,7 +29,7 @@ export default function AIFieldDetector({ instanceRef, onClose, onConfirm }) {
   }, [onClose])
 
   function handleLocate() {
-    if (!navigator.geolocation) { setError("Geolokatsiya qo'llab-quvvatlanmaydi"); return }
+    if (!navigator.geolocation) { setError(t(activeLang, 'geoNotSupported')); return }
     setLocating(true)
     setError('')
     navigator.geolocation.getCurrentPosition(
@@ -38,7 +38,7 @@ export default function AIFieldDetector({ instanceRef, onClose, onConfirm }) {
         setLng(pos.coords.longitude.toFixed(6))
         setLocating(false)
       },
-      () => { setError("Joylashuv aniqlanmadi"); setLocating(false) },
+      () => { setError(t(activeLang, 'locationFailed')); setLocating(false) },
       { timeout: 8000 }
     )
   }
@@ -46,9 +46,9 @@ export default function AIFieldDetector({ instanceRef, onClose, onConfirm }) {
   async function handleDetect() {
     const la = parseFloat(lat)
     const lo = parseFloat(lng)
-    if (isNaN(la) || isNaN(lo)) { setError("To'g'ri koordinat kiriting"); return }
+    if (isNaN(la) || isNaN(lo)) { setError(t(activeLang, 'invalidCoords')); return }
     if (la < -90 || la > 90 || lo < -180 || lo > 180) {
-      setError("Koordinatlar diapazoni noto'g'ri"); return
+      setError(t(activeLang, 'coordsOutOfRange')); return
     }
 
     setError('')
@@ -64,7 +64,7 @@ export default function AIFieldDetector({ instanceRef, onClose, onConfirm }) {
       })
       const data = await res.json()
 
-      if (!res.ok) throw new Error(data.error || 'Server xatosi')
+      if (!res.ok) throw new Error(data.error || t(activeLang, 'serverError'))
 
       if (!data.found) {
         setResult(data)
@@ -75,7 +75,6 @@ export default function AIFieldDetector({ instanceRef, onClose, onConfirm }) {
       setResult(data)
       setStep('result')
 
-      // Preview polygon on the main map
       if (instanceRef?.current && data.polygon?.length) {
         const latlngs = data.polygon.map(([lo, la]) => [la, lo])
         const layer   = L.polygon(latlngs, {
@@ -86,7 +85,7 @@ export default function AIFieldDetector({ instanceRef, onClose, onConfirm }) {
         instanceRef.current.fitBounds(layer.getBounds(), { padding: [50, 50] })
       }
     } catch (err) {
-      setError(err.name === 'TimeoutError' ? "So'rov vaqti tugadi. Qaytadan urining." : err.message)
+      setError(err.name === 'TimeoutError' ? t(activeLang, 'requestTimeout') : err.message)
       setStep('input')
     }
   }
@@ -119,7 +118,7 @@ export default function AIFieldDetector({ instanceRef, onClose, onConfirm }) {
         <div className="afd-header">
           <div className="afd-title">
             <i className="ti ti-sparkles afd-sparkle" />
-            AI Dala Aniqlash
+            {t(activeLang, 'aiDetectTitle')}
           </div>
           <button className="afd-close" onClick={onClose}>
             <i className="ti ti-x" />
@@ -129,13 +128,11 @@ export default function AIFieldDetector({ instanceRef, onClose, onConfirm }) {
         {/* ── INPUT ── */}
         {step === 'input' && (
           <div className="afd-body">
-            <p className="afd-desc">
-              Koordinat kiriting — AI dalangizni avtomatik topadi
-            </p>
+            <p className="afd-desc">{t(activeLang, 'aiDetectDesc')}</p>
 
             <div className="afd-grid">
               <div className="afd-field">
-                <label className="afd-label">Kenglik (Latitude)</label>
+                <label className="afd-label">{t(activeLang, 'latitudeLabel')}</label>
                 <input
                   className="afd-input"
                   type="number" step="0.0001" placeholder="41.2995"
@@ -145,7 +142,7 @@ export default function AIFieldDetector({ instanceRef, onClose, onConfirm }) {
                 />
               </div>
               <div className="afd-field">
-                <label className="afd-label">Uzunlik (Longitude)</label>
+                <label className="afd-label">{t(activeLang, 'longitudeLabel')}</label>
                 <input
                   className="afd-input"
                   type="number" step="0.0001" placeholder="69.2401"
@@ -158,8 +155,8 @@ export default function AIFieldDetector({ instanceRef, onClose, onConfirm }) {
 
             <button className="afd-locate-btn" onClick={handleLocate} disabled={locating}>
               {locating
-                ? <><span className="afd-dot" /> Aniqlanmoqda...</>
-                : <><i className="ti ti-current-location" /> Joriy joylashuvimdan foydalanish</>
+                ? <><span className="afd-dot" /> {t(activeLang, 'locatingText')}</>
+                : <><i className="ti ti-current-location" /> {t(activeLang, 'useCurrentLocation')}</>
               }
             </button>
 
@@ -174,7 +171,7 @@ export default function AIFieldDetector({ instanceRef, onClose, onConfirm }) {
               onClick={handleDetect}
               disabled={!lat || !lng}
             >
-              <i className="ti ti-sparkles" /> Dalani Top
+              <i className="ti ti-sparkles" /> {t(activeLang, 'detectBtn')}
             </button>
           </div>
         )}
@@ -187,10 +184,10 @@ export default function AIFieldDetector({ instanceRef, onClose, onConfirm }) {
               <span />
               <span />
             </div>
-            <div className="afd-loading-title">AI dalani qidiryapti...</div>
+            <div className="afd-loading-title">{t(activeLang, 'aiSearching')}</div>
             <div className="afd-loading-sub">
-              Sentinel-2 sun'iy yo'ldosh ma'lumotlari tahlil qilinmoqda
-              <br />Taxminan 20–40 soniya
+              {t(activeLang, 'analyzingSatellite')}
+              <br />{t(activeLang, 'approxTime')}
             </div>
           </div>
         )}
@@ -199,31 +196,31 @@ export default function AIFieldDetector({ instanceRef, onClose, onConfirm }) {
         {step === 'result' && result && (
           <div className="afd-body">
             <div className="afd-found-badge">
-              <i className="ti ti-circle-check" /> Dala topildi!
+              <i className="ti ti-circle-check" /> {t(activeLang, 'fieldFound')}
             </div>
 
             <div className="afd-stats">
               <div className="afd-stat">
                 <span className="afd-stat-val">{Number(result.area_ha).toFixed(2)}</span>
-                <span className="afd-stat-lbl">ga maydon</span>
+                <span className="afd-stat-lbl">{t(activeLang, 'areaHaLabel')}</span>
               </div>
               <div className="afd-stat-sep" />
               <div className="afd-stat">
                 <span className="afd-stat-val afd-stat-val--green">
                   {Number(result.ndvi_avg).toFixed(3)}
                 </span>
-                <span className="afd-stat-lbl">NDVI o'rtacha</span>
+                <span className="afd-stat-lbl">{t(activeLang, 'ndviAvgLabel')}</span>
               </div>
             </div>
 
-            <p className="afd-confirm-q">Bu dala to'g'rimi?</p>
+            <p className="afd-confirm-q">{t(activeLang, 'isFieldCorrect')}</p>
 
             <div className="afd-actions">
               <button className="afd-btn afd-btn--primary" onClick={handleConfirm}>
-                <i className="ti ti-check" /> Ha, tahlil qil
+                <i className="ti ti-check" /> {t(activeLang, 'confirmAnalyze')}
               </button>
               <button className="afd-btn afd-btn--ghost" onClick={handleRetry}>
-                <i className="ti ti-refresh" /> Yo'q, qaytadan
+                <i className="ti ti-refresh" /> {t(activeLang, 'noRetry')}
               </button>
             </div>
           </div>
@@ -233,10 +230,10 @@ export default function AIFieldDetector({ instanceRef, onClose, onConfirm }) {
         {step === 'notfound' && (
           <div className="afd-body afd-notfound">
             <i className="ti ti-map-off afd-notfound-icon" />
-            <div className="afd-notfound-title">Dala topilmadi</div>
+            <div className="afd-notfound-title">{t(activeLang, 'fieldNotFound')}</div>
             <div className="afd-notfound-sub">{result?.message}</div>
             <button className="afd-btn afd-btn--ghost afd-btn--full" onClick={handleRetry}>
-              <i className="ti ti-refresh" /> Qaytadan urinish
+              <i className="ti ti-refresh" /> {t(activeLang, 'retryBtn')}
             </button>
           </div>
         )}

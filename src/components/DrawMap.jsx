@@ -5,6 +5,7 @@ import 'leaflet-draw'
 import './DrawMap.css'
 import { generatePdfReport } from './ReportExport'
 import AIFieldDetector      from './AIFieldDetector'
+import { t } from '../i18n'
 
 // ── Eski static JSON lar (local fallback uchun saqlanadi) ──
 import ndviData from '../data/ndvi.json'
@@ -46,6 +47,107 @@ function analyzeFile(drawnRings, geojson) {
     }
   }
   return total === 0 ? null : { avg: wSum / total, count: total }
+}
+
+// ═══════════════════════════════════════════════
+// NDVI HEATMAP HELPERS (50×50 OneSoil-style grid)
+// ═══════════════════════════════════════════════
+function rng(n) {
+  const x = Math.sin(n * 9301.0 + 49297.0) * 233280.0
+  return x - Math.floor(x)
+}
+
+const NDVI_PALETTE = [
+  [ 0.60, '#004400'],
+  [ 0.52, '#006600'],
+  [ 0.45, '#008800'],
+  [ 0.38, '#22AA00'],
+  [ 0.32, '#44CC00'],
+  [ 0.26, '#88DD00'],
+  [ 0.20, '#BBEE00'],
+  [ 0.15, '#DDEE00'],
+  [ 0.10, '#FFEE00'],
+  [ 0.06, '#FFCC00'],
+  [ 0.02, '#FFAA00'],
+  [-0.02, '#FF7700'],
+  [-0.06, '#FF4400'],
+  [-0.10, '#EE1100'],
+]
+function ndviColor(v) {
+  for (const [t, c] of NDVI_PALETTE) if (v >= t) return c
+  return '#CC0000'
+}
+
+function buildHeatmap(mapInstance, layers) {
+  if (!mapInstance || !layers.length) return null
+
+  // Closed ring in [lng, lat] order
+  const lls  = layers[0].getLatLngs()[0]
+  const ring = lls.map(ll => [ll.lng, ll.lat])
+  if (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1])
+    ring.push(ring[0])
+
+  const bounds = layers[0].getBounds()
+  const nw = bounds.getNorthWest(), se = bounds.getSouthEast()
+  const minLng = nw.lng, maxLng = se.lng
+  const minLat = se.lat, maxLat = nw.lat
+  const dLng   = maxLng - minLng
+  const dLat   = maxLat - minLat
+
+  // Deterministic seed from centroid
+  const cx0 = ring.reduce((s, p) => s + p[0], 0) / ring.length
+  const cy0 = ring.reduce((s, p) => s + p[1], 0) / ring.length
+  const S   = Math.round(cx0 * 1e4 + cy0 * 1e5)
+
+  // 5 zone centers — positions + NDVI values seeded from polygon centroid
+  const centers = Array.from({ length: 5 }, (_, i) => ({
+    nx:   rng(S + i * 13 + 1),
+    ny:   rng(S + i * 17 + 2),
+    ndvi: rng(S + i * 41 + 7) * 0.75 - 0.08,   // range: −0.08 … 0.67
+  }))
+
+  const G    = 80
+  const cLng = dLng / G
+  const cLat = dLat / G
+  const group = L.featureGroup()
+
+  for (let row = 0; row < G; row++) {
+    for (let col = 0; col < G; col++) {
+      // Normalised cell centre
+      const nx  = (col + 0.5) / G
+      const ny  = (row + 0.5) / G
+      // Geographic centre for PIP
+      const lng = minLng + nx * dLng
+      const lat = minLat + ny * dLat
+
+      // Ray-casting point-in-polygon
+      if (!pip([lng, lat], ring)) continue
+
+      // Weighted average of the 2 nearest centers → wide smooth gradient zones
+      const nearest = centers
+        .map(c => ({ ndvi: c.ndvi, dist: Math.sqrt((nx - c.nx) ** 2 + (ny - c.ny) ** 2) }))
+        .sort((a, b) => a.dist - b.dist)
+        .slice(0, 2)
+
+      let wSum = 0, vSum = 0
+      for (const c of nearest) {
+        const w = 1 / Math.pow(c.dist + 1e-9, 2)
+        wSum += w; vSum += w * c.ndvi
+      }
+
+      // ±0.015 jitter for subtle sub-cell texture
+      const jitter = (rng(S + row * 97 + col * 53) - 0.5) * 0.03
+      const ndvi   = Math.max(-0.15, Math.min(0.75, vSum / wSum + jitter))
+
+      L.rectangle(
+        [[minLat +  row      * cLat, minLng +  col      * cLng],
+         [minLat + (row + 1) * cLat, minLng + (col + 1) * cLng]],
+        { fillColor: ndviColor(ndvi), fillOpacity: 0.85, stroke: false, interactive: false }
+      ).addTo(group)
+    }
+  }
+
+  return group
 }
 
 // ═══════════════════════════════════════════════
@@ -230,12 +332,14 @@ async function fetchGeeAnalysis(layers, yr) {
 // ═══════════════════════════════════════════════
 // COMPONENT
 // ═══════════════════════════════════════════════
-export default function DrawMap({ activeTab, onTabChange, importedField, onAnalysisUpdate }) {
+export default function DrawMap({ activeTab, onTabChange, importedField, onAnalysisUpdate, lang }) {
+  const activeLang = lang ?? 'uz'
   const mapRef      = useRef(null)
   const instanceRef = useRef(null)
   const drawnRef    = useRef(null)
-  const geeLayerRef = useRef(null)   // Leaflet TileLayer: GEE heatmap
-  const geeReadyRef = useRef(false)  // true when GEE analysis succeeded
+  const geeLayerRef     = useRef(null)   // Leaflet TileLayer: GEE heatmap
+  const geeReadyRef     = useRef(false)  // true when GEE analysis succeeded
+  const heatmapLayerRef = useRef(null)   // canvas NDVI ImageOverlay (demo fallback)
 
   const [polygons,        setPolygons]        = useState([])
   const [analysis,        setAnalysis]        = useState(null)
@@ -416,7 +520,7 @@ export default function DrawMap({ activeTab, onTabChange, importedField, onAnaly
     if (instanceRef.current) return
 
     const map = L.map(mapRef.current, {
-      center: [42.85, 60.08], zoom: 13, zoomControl: false,
+      center: [42.85, 60.08], zoom: 13, zoomControl: false, preferCanvas: true,
     })
     L.tileLayer(
       'https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
@@ -451,7 +555,12 @@ export default function DrawMap({ activeTab, onTabChange, importedField, onAnaly
       }))
       setPolygons(list)
 
-      // Polygon yo'q bo'lsa GEE layer ham olib tashlanadi
+      // Eski canvas heatmap ni olib tashlaymiz
+      if (heatmapLayerRef.current) {
+        map.removeLayer(heatmapLayerRef.current)
+        heatmapLayerRef.current = null
+      }
+
       if (layers.length === 0) {
         geeReadyRef.current = false
         setLayerStats(null)
@@ -460,6 +569,10 @@ export default function DrawMap({ activeTab, onTabChange, importedField, onAnaly
           map.removeLayer(geeLayerRef.current)
           geeLayerRef.current = null
         }
+      } else {
+        // Demo heatmap — GEE tayyor bo'lgunga qadar ko'rsatiladi
+        const hm = buildHeatmap(map, layers)
+        if (hm) { hm.addTo(map); heatmapLayerRef.current = hm }
       }
 
       runAnalysisRef.current(layers)
@@ -471,7 +584,8 @@ export default function DrawMap({ activeTab, onTabChange, importedField, onAnaly
 
     instanceRef.current = map
     return () => {
-      geeLayerRef.current = null
+      geeLayerRef.current     = null
+      heatmapLayerRef.current = null
       map.remove()
       instanceRef.current = null
     }
@@ -482,6 +596,12 @@ export default function DrawMap({ activeTab, onTabChange, importedField, onAnaly
     if (!importedField || !drawnRef.current || !instanceRef.current) return
 
     drawnRef.current.clearLayers()
+
+    // Eski heatmap ni tozalaymiz
+    if (heatmapLayerRef.current) {
+      instanceRef.current.removeLayer(heatmapLayerRef.current)
+      heatmapLayerRef.current = null
+    }
 
     L.geoJSON(importedField, {
       style: { color: '#22c55e', fillColor: '#22c55e', fillOpacity: 0.25, weight: 2.5 },
@@ -494,6 +614,11 @@ export default function DrawMap({ activeTab, onTabChange, importedField, onAnaly
       return { id: i + 1, ha: L.GeometryUtil.geodesicArea(ring) / 10000 }
     })
     setPolygons(list)
+
+    // Demo heatmap ni ko'rsatamiz
+    const hm = buildHeatmap(instanceRef.current, layers)
+    if (hm) { hm.addTo(instanceRef.current); heatmapLayerRef.current = hm }
+
     runAnalysisRef.current(layers)
 
     const bounds = drawnRef.current.getBounds()
@@ -527,6 +652,13 @@ export default function DrawMap({ activeTab, onTabChange, importedField, onAnaly
   function handleAIConfirm(geojson) {
     if (!drawnRef.current || !instanceRef.current) return
     drawnRef.current.clearLayers()
+
+    // Eski heatmap ni tozalaymiz
+    if (heatmapLayerRef.current) {
+      instanceRef.current.removeLayer(heatmapLayerRef.current)
+      heatmapLayerRef.current = null
+    }
+
     L.geoJSON(geojson, {
       style: { color: '#22c55e', fillColor: '#22c55e', fillOpacity: 0.25, weight: 2.5 },
     }).eachLayer(layer => drawnRef.current.addLayer(layer))
@@ -537,6 +669,11 @@ export default function DrawMap({ activeTab, onTabChange, importedField, onAnaly
       return { id: i + 1, ha: L.GeometryUtil.geodesicArea(ring) / 10000 }
     })
     setPolygons(list)
+
+    // Demo heatmap ni ko'rsatamiz
+    const hm = buildHeatmap(instanceRef.current, layers)
+    if (hm) { hm.addTo(instanceRef.current); heatmapLayerRef.current = hm }
+
     runAnalysisRef.current(layers)
     const bounds = drawnRef.current.getBounds()
     if (bounds.isValid()) instanceRef.current.fitBounds(bounds, { padding: [40, 40] })
@@ -846,17 +983,17 @@ export default function DrawMap({ activeTab, onTabChange, importedField, onAnaly
       {polygons.length === 0 && !analyzing && (
         <div className="dm-onboarding">
           <i className="ti ti-map-pin dm-ob-icon" />
-          <div className="dm-ob-title">Maydoningizni belgilang</div>
+          <div className="dm-ob-title">{t(activeLang, 'obTitle')}</div>
           <ol className="dm-ob-steps">
-            <li>Xaritada dalangiz ustiga boring</li>
-            <li>O'ng tomondagi chizish tugmasini bosing</li>
-            <li>Polygon chizing</li>
-            <li>Avtomatik tahlil boshlanadi</li>
+            <li>{t(activeLang, 'obStep1')}</li>
+            <li>{t(activeLang, 'obStep2')}</li>
+            <li>{t(activeLang, 'obStep3')}</li>
+            <li>{t(activeLang, 'obStep4')}</li>
           </ol>
-          <div className="dm-ob-divider">yoki</div>
+          <div className="dm-ob-divider">{t(activeLang, 'obOr')}</div>
           <button className="dm-ob-upload" onClick={() => onTabChange('fayl-yuklash')}>
             <i className="ti ti-file-upload" />
-            Fayl yuklash
+            {t(activeLang, 'obUpload')}
           </button>
         </div>
       )}
@@ -867,6 +1004,7 @@ export default function DrawMap({ activeTab, onTabChange, importedField, onAnaly
           instanceRef={instanceRef}
           onClose={() => onTabChange('dala')}
           onConfirm={handleAIConfirm}
+          lang={activeLang}
         />
       )}
     </div>
